@@ -1,30 +1,23 @@
 import { useState } from "react";
 import type { Village } from "../data/villages";
-import { getStatusLabel, getStatusColor } from "../data/villages";
 import type { WeightFormat } from "../data/master";
 
 interface SidebarProps {
   isLoading: boolean;
-  isCalculated: boolean;
-  selectedVillage: Village | null;
   onCalculate: (customData?: any[], weightId?: string) => void;
   isOpen: boolean;
   onToggle: () => void;
   masterVillages: Village[];
   masterWeights: WeightFormat[];
-  onOpenMasterModal: () => void;
 }
 
 export default function Sidebar({
   isLoading,
-  isCalculated,
-  selectedVillage,
   onCalculate,
   isOpen,
   onToggle,
   masterVillages,
   masterWeights,
-  onOpenMasterModal,
 }: SidebarProps) {
   const [inputType, setInputType] = useState<"upload" | "manual">("upload");
   const [manualDataList, setManualDataList] = useState<any[]>([]);
@@ -163,18 +156,6 @@ export default function Sidebar({
               </div>
             ) : (
               <div className="mb-3 space-y-2.5">
-                <button
-                  type="button"
-                  onClick={onOpenMasterModal}
-                  className="w-full bg-slate-800 hover:bg-slate-700 text-white
-                    font-medium py-1.5 px-3 rounded-lg transition-colors text-xs shadow-sm flex justify-center items-center gap-1.5"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                  </svg>
-                  Buka Master Data
-                </button>
-
                 <div>
                   <label className="block text-[10px] font-medium text-slate-700 mb-1">Format Pembobotan</label>
                   <select
@@ -318,105 +299,10 @@ export default function Sidebar({
               )}
             </button>
           </div>
-
-          {/* Status summary */}
-          {isCalculated && (
-            <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-              <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Ringkasan</h3>
-              <div className="grid grid-cols-3 gap-1.5">
-                <div className="text-center p-1.5 bg-white rounded-md border border-slate-200">
-                  <div className="text-base font-bold text-danger">8</div>
-                  <div className="text-[9px] text-slate-500 leading-tight">Sangat Prioritas</div>
-                </div>
-                <div className="text-center p-1.5 bg-white rounded-md border border-slate-200">
-                  <div className="text-base font-bold text-warning">12</div>
-                  <div className="text-[9px] text-slate-500 leading-tight">Prioritas Sedang</div>
-                </div>
-                <div className="text-center p-1.5 bg-white rounded-md border border-slate-200">
-                  <div className="text-base font-bold text-success">10</div>
-                  <div className="text-[9px] text-slate-500 leading-tight">Prioritas Rendah</div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Divider */}
         <div className="border-t border-slate-200 mx-4" />
-
-        {/* Detail Panel */}
-        <div className="px-4 py-3 flex-1">
-          <h2 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">Detail Desa</h2>
-
-          {selectedVillage ? (
-            <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 space-y-2.5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-800">{selectedVillage.name}</h3>
-                  <p className="text-[11px] text-slate-500">Kec. {selectedVillage.district}</p>
-                </div>
-                <span
-                  className="text-[11px] font-bold px-2 py-0.5 rounded-full text-white"
-                  style={{ backgroundColor: getStatusColor(selectedVillage.vScore) }}
-                >
-                  #{selectedVillage.ranking}
-                </span>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-slate-500">V-Score</span>
-                  <span className="text-sm font-bold" style={{ color: getStatusColor(selectedVillage.vScore) }}>
-                    {selectedVillage.vScore.toFixed(2)}
-                  </span>
-                </div>
-
-                {/* Progress bar */}
-                <div className="w-full bg-slate-200 rounded-full h-1.5">
-                  <div
-                    className="h-1.5 rounded-full transition-all duration-500"
-                    style={{
-                      width: `${selectedVillage.vScore * 100}%`,
-                      backgroundColor: getStatusColor(selectedVillage.vScore),
-                    }}
-                  />
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-slate-500">Status</span>
-                  <span
-                    className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                    style={{
-                      backgroundColor: getStatusColor(selectedVillage.vScore) + "18",
-                      color: getStatusColor(selectedVillage.vScore),
-                    }}
-                  >
-                    {getStatusLabel(selectedVillage.vScore)}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-slate-500">Koordinat</span>
-                  <span className="text-[11px] font-mono text-slate-600">
-                    {selectedVillage.lat.toFixed(3)}, {selectedVillage.lng.toFixed(3)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-slate-50/50 rounded-xl p-5 border border-dashed border-slate-300 flex flex-col items-center justify-center text-center">
-              <svg className="w-8 h-8 text-slate-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-              </svg>
-              <p className="text-xs text-slate-400">
-                {isCalculated
-                  ? "Klik marker pada peta atau baris pada tabel untuk melihat detail desa."
-                  : "Jalankan simulasi terlebih dahulu untuk melihat data desa."}
-              </p>
-            </div>
-          )}
-        </div>
 
         {/* Footer */}
         <div className="px-4 py-2.5 border-t border-slate-200 bg-slate-50 flex-shrink-0">

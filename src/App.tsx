@@ -166,14 +166,11 @@ export default function App() {
       {/* Sidebar */}
       <Sidebar
         isLoading={isLoading}
-        isCalculated={isCalculated}
-        selectedVillage={selectedVillage}
         onCalculate={handleCalculate}
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen((v) => !v)}
         masterVillages={masterVillages}
         masterWeights={masterWeights}
-        onOpenMasterModal={() => setMasterModalOpen(true)}
       />
 
       {/* Main Content */}
@@ -201,6 +198,15 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setMasterModalOpen(true)}
+              className="text-[11px] font-bold px-3 py-1.5 bg-primary text-white hover:bg-primary-light rounded-lg transition-colors shadow-sm flex items-center gap-1"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+              Master Data
+            </button>
             <button 
               onClick={() => {
                 setIsAuthenticated(false);

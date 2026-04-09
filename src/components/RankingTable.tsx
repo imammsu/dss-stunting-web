@@ -23,6 +23,11 @@ export default function RankingTable({
 }: RankingTableProps) {
   const rowRefs = useRef<Map<number, HTMLTableRowElement>>(new Map());
 
+  // Hitung ringkasan prioritas
+  const sangatPrioritas = villages.filter(v => v.vScore > 0.7).length;
+  const prioritasSedang = villages.filter(v => v.vScore > 0.4 && v.vScore <= 0.7).length;
+  const prioritasRendah = villages.filter(v => v.vScore <= 0.4).length;
+
   // Scroll to selected row
   useEffect(() => {
     if (selectedVillage) {
@@ -49,16 +54,30 @@ export default function RankingTable({
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="flex flex-col gap-3 px-4 py-3 border-b border-slate-200 bg-slate-50/50 flex-shrink-0">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-bold text-slate-800">Perankingan Desa</h2>
-            <p className="text-[11px] text-slate-500">{villages.length} desa teranalisis</p>
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5">
+              <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+              </svg>
+              Klik baris untuk detail
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
-            </svg>
-            Klik baris untuk detail
+          
+          <div className="flex gap-1.5 text-center text-[10px]">
+            <div className="px-2 py-1 bg-white rounded border border-slate-200 flex flex-col justify-center min-w-[70px]">
+              <span className="font-bold text-danger block text-sm leading-tight">{sangatPrioritas}</span>
+              <span className="text-slate-500 mt-0.5 whitespace-nowrap">Sangat Prioritas</span>
+            </div>
+            <div className="px-2 py-1 bg-white rounded border border-slate-200 flex flex-col justify-center min-w-[70px]">
+              <span className="font-bold text-warning block text-sm leading-tight">{prioritasSedang}</span>
+              <span className="text-slate-500 mt-0.5 whitespace-nowrap">Prioritas Sedang</span>
+            </div>
+            <div className="px-2 py-1 bg-white rounded border border-slate-200 flex flex-col justify-center min-w-[70px]">
+              <span className="font-bold text-success block text-sm leading-tight">{prioritasRendah}</span>
+              <span className="text-slate-500 mt-0.5 whitespace-nowrap">Prioritas Rendah</span>
+            </div>
           </div>
         </div>
 
