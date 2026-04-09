@@ -201,12 +201,6 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {isCalculated && (
-              <span className="text-[11px] text-green-600 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full font-medium flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                Simulasi Aktif
-              </span>
-            )}
             <button 
               onClick={() => {
                 setIsAuthenticated(false);
