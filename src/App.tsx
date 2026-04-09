@@ -6,8 +6,12 @@ import { villagesData } from "./data/villages";
 import type { Village } from "./data/villages";
 import MasterDataModal from "./components/MasterDataModal";
 import { defaultWeightFormats } from "./data/master";
+import Login from "./components/Login";
+import Register from "./components/Register";
 
 export default function App() {
+  const [currentRoute, setCurrentRoute] = useState<"login" | "register" | "app">("login");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const initialHistory = useMemo(() => {
     const now = new Date();
     const yesterday = new Date(now);
@@ -127,6 +131,28 @@ export default function App() {
     setSelectedVillage(village);
   }, []);
 
+  if (!isAuthenticated) {
+    if (currentRoute === "login") {
+      return (
+        <Login 
+          onLogin={() => {
+            setIsAuthenticated(true);
+            setCurrentRoute("app");
+          }} 
+          onNavigateToRegister={() => setCurrentRoute("register")} 
+        />
+      );
+    }
+    
+    if (currentRoute === "register") {
+      return (
+        <Register 
+          onNavigateToLogin={() => setCurrentRoute("login")} 
+        />
+      );
+    }
+  }
+
   return (
     <div className="flex h-screen bg-slate-50 text-slate-900 font-['Inter',sans-serif] overflow-hidden">
       {/* Mobile sidebar overlay */}
@@ -181,6 +207,15 @@ export default function App() {
                 Simulasi Aktif
               </span>
             )}
+            <button 
+              onClick={() => {
+                setIsAuthenticated(false);
+                setCurrentRoute("login");
+              }} 
+              className="text-[11px] font-bold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors ml-2"
+            >
+              Logout
+            </button>
           </div>
         </div>
 
