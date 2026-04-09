@@ -219,56 +219,59 @@ export default function MasterDataModal({
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {weights.map((w) => (
-                  <div key={w.id} className="border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow bg-slate-50/50 relative">
-                    <div className="flex justify-between items-start mb-3">
-                      <h3 className="font-bold text-slate-800">{w.name}</h3>
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => handleEditWeight(w)} className="p-1 text-slate-400 hover:text-slate-800 hover:bg-slate-200 rounded transition-colors" title="Edit">
-                          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                          </svg>
-                        </button>
-                        <button onClick={() => handleDeleteWeight(w.id)} className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors" title="Delete">
-                          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                      <div className="flex justify-between border-b border-slate-200 pb-1">
-                        <span className="text-slate-500">Komitmen:</span>
-                        <span className="font-semibold text-slate-700">{w.weights.komitmen}</span>
-                      </div>
-                      <div className="flex justify-between border-b border-slate-200 pb-1">
-                        <span className="text-slate-500">Stunting:</span>
-                        <span className="font-semibold text-slate-700">{w.weights.stunting}</span>
-                      </div>
-                      <div className="flex justify-between border-b border-slate-200 pb-1">
-                        <span className="text-slate-500">Prevalensi:</span>
-                        <span className="font-semibold text-slate-700">{w.weights.prevalensi}</span>
-                      </div>
-                      <div className="flex justify-between border-b border-slate-200 pb-1">
-                        <span className="text-slate-500">Kemiskinan:</span>
-                        <span className="font-semibold text-slate-700">{w.weights.kemiskinan}</span>
-                      </div>
-                      <div className="flex justify-between border-b border-slate-200 pb-1">
-                        <span className="text-slate-500">Remaja:</span>
-                        <span className="font-semibold text-slate-700">{w.weights.remaja}</span>
-                      </div>
-                      <div className="flex justify-between border-b border-slate-200 pb-1">
-                        <span className="text-slate-500">Jarak:</span>
-                        <span className="font-semibold text-slate-700">{w.weights.jarak}</span>
-                      </div>
-                      <div className="flex justify-between border-b border-slate-200 pb-1">
-                        <span className="text-slate-500">Tenaga Kerja:</span>
-                        <span className="font-semibold text-slate-700">{w.weights.tenagaKerja}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="border border-slate-200 rounded-xl overflow-hidden mt-4">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-slate-50 border-b border-slate-200">
+                      <tr>
+                        <th className="px-4 py-3 font-semibold text-slate-600 w-16">No</th>
+                        <th className="px-4 py-3 font-semibold text-slate-600">Nama Bobot</th>
+                        <th className="px-2 py-3 font-semibold text-slate-600 text-center text-xs">Komitmen</th>
+                        <th className="px-2 py-3 font-semibold text-slate-600 text-center text-xs">Remaja</th>
+                        <th className="px-2 py-3 font-semibold text-slate-600 text-center text-xs">Stunting</th>
+                        <th className="px-2 py-3 font-semibold text-slate-600 text-center text-xs">Prevalensi</th>
+                        <th className="px-2 py-3 font-semibold text-slate-600 text-center text-xs">Miskin</th>
+                        <th className="px-2 py-3 font-semibold text-slate-600 text-center text-xs">Jarak</th>
+                        <th className="px-2 py-3 font-semibold text-slate-600 text-center text-xs">Pekerja</th>
+                        <th className="px-4 py-3 font-semibold text-slate-600 text-right w-24">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {weights.map((w, idx) => (
+                        <tr key={w.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-4 py-3 text-slate-500">{idx + 1}</td>
+                          <td className="px-4 py-3 font-medium text-slate-700 max-w-[120px] truncate" title={w.name}>{w.name}</td>
+                          <td className="px-2 py-3 text-center text-slate-600 font-mono text-[10px]">{w.weights.komitmen.toFixed(3)}</td>
+                          <td className="px-2 py-3 text-center text-slate-600 font-mono text-[10px]">{w.weights.remaja.toFixed(3)}</td>
+                          <td className="px-2 py-3 text-center text-slate-600 font-mono text-[10px]">{w.weights.stunting.toFixed(3)}</td>
+                          <td className="px-2 py-3 text-center text-slate-600 font-mono text-[10px]">{w.weights.prevalensi.toFixed(3)}</td>
+                          <td className="px-2 py-3 text-center text-slate-600 font-mono text-[10px]">{w.weights.kemiskinan.toFixed(3)}</td>
+                          <td className="px-2 py-3 text-center text-slate-600 font-mono text-[10px]">{w.weights.jarak.toFixed(3)}</td>
+                          <td className="px-2 py-3 text-center text-slate-600 font-mono text-[10px]">{w.weights.tenagaKerja.toFixed(3)}</td>
+                          <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
+                            <button onClick={() => handleEditWeight(w)} className="text-slate-400 hover:text-slate-800 transition-colors" title="Edit">
+                              <svg className="w-4 h-4 inline" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                              </svg>
+                            </button>
+                            <button onClick={() => handleDeleteWeight(w.id)} className="text-slate-400 hover:text-red-600 transition-colors" title="Delete">
+                              <svg className="w-4 h-4 inline" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {weights.length === 0 && (
+                        <tr>
+                          <td colSpan={10} className="px-4 py-8 text-center text-slate-500">
+                            Data pembobotan tidak ditemukan.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
