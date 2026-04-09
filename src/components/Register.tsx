@@ -8,14 +8,20 @@ export default function Register({ onNavigateToLogin }: RegisterProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [toast, setToast] = useState<{message: string, isSuccess?: boolean} | null>(null);
+
+  const showToast = (message: string, isSuccess = false) => {
+    setToast({ message, isSuccess });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (name && email && password) {
-      alert("Registrasi berhasil! Silahkan masuk.");
-      onNavigateToLogin();
+      showToast("Registrasi berhasil! Silahkan masuk.", true);
+      setTimeout(() => onNavigateToLogin(), 1500);
     } else {
-      alert("Harap isi semua kolom");
+      showToast("Harap isi semua kolom");
     }
   };
 
@@ -81,6 +87,23 @@ export default function Register({ onNavigateToLogin }: RegisterProps) {
           </p>
         </div>
       </div>
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 px-5 py-3 rounded-xl shadow-2xl text-sm font-semibold animate-in fade-in slide-in-from-bottom-6 z-[9999] transition-colors border ${toast.isSuccess ? 'bg-green-600 text-white border-green-500' : 'bg-red-500 text-white border-red-400'}`}>
+          <div className="flex items-center gap-2">
+            {toast.isSuccess ? (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            )}
+            {toast.message}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
