@@ -13,7 +13,7 @@ export const listAlternativesFromDatabase = async () => {
     FROM alternatif_desa a
     LEFT JOIN default_nilai_alternatif d
       ON d.id_alternatif_desa = a.id
-    ORDER BY a.nama ASC
+    ORDER BY a.id DESC
   `;
  
   const result = await pool.query(query);
@@ -40,5 +40,52 @@ export const listAlternativesFromDatabase = async () => {
  
   return Array.from(alternativesMap.values());
 };
+
+export const insertAlternatifDesa = async ({ name, kecamatan, lat, lng }) => {
+  const query = `
+    INSERT INTO alternatif_desa (nama, kecamatan, koordinat)
+    VALUES ($1, $2, $3)
+    RETURNING id
+  `;
+  const result = await pool.query(query, [name, kecamatan, `${lat},${lng}`]);
+  return result.rows[0]; // { id: ... }
+};
+
+export const insertAlternatifDesaDefaultNilai = async (nilaiRows) => {
+  const query = `
+    INSERT INTO default_nilai_alternatif (id_alternatif_desa, id_kriteria, nilai)
+    VALUES ($1, $2, $3)
+  `;
+  for (const row of nilaiRows) {
+    await pool.query(query, [row.id_alternatif_desa, row.id_kriteria, row.nilai]);
+  }
+};
  
+export const updateAlternatifDesa = async (id, { name, kecamatan, lat, lng }) => {
+  const query = `
+    UPDATE alternatif_desa
+    SET nama = $1, kecamatan = $2, koordinat = $3
+    WHERE id = $4
+    RETURNING id
+  `;
+  const result = await pool.query(query, [name, kecamatan, `${lat},${lng}`, id]);
+  if (result.rowCount === 0) throw new Error("Data tidak ditemukan.");
+  return result.rows[0];
+};
+
+export const updateAlternatifDesaDefaultNilai = async (id, nilaiRows) => {
+  // Hapus nilai lama dulu, lalu insert yang baru
+  await pool.query(
+    `DELETE FROM default_nilai_alternatif WHERE id_alternatif_desa = $1`,
+    [id]
+  );
+
+  const query = `
+    INSERT INTO default_nilai_alternatif (id_alternatif_desa, id_kriteria, nilai)
+    VALUES ($1, $2, $3)
+  `;
+  for (const row of nilaiRows) {
+    await pool.query(query, [row.id_alternatif_desa, row.id_kriteria, row.nilai]);
+  }
+};
 

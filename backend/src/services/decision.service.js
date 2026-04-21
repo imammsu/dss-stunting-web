@@ -6,6 +6,7 @@ import { getMasterBootstrap } from "./master.service.js";
 import { ApiError } from "../utils/apiError.js";
 import { calculateAHP } from "./decision/ahp.service.js";
 import { rankWithTopsis } from "./decision/topsis.service.js";
+import { listRiwayatFromDatabase, getRiwayatDetailFromDatabase } from "../repositories/ranking.repository.js";
 
 export const evaluateDecision = ({ criteria, comparisons, alternatives, maxCr }) => {
   const ahpResult = calculateAHP({
@@ -80,4 +81,16 @@ export const rankDecisionFromDatabase = async () => {
     criteria: bootstrap.criteria,
     alternatives: bootstrap.alternatives,
   });
+};
+
+/** Ambil daftar semua sesi riwayat perankingan (terbaru di atas). */
+export const getRiwayatList = async () => {
+  return listRiwayatFromDatabase();
+};
+
+/** Ambil detail satu sesi riwayat beserta data desa yang diranking. */
+export const getRiwayatDetail = async (id) => {
+  const result = await getRiwayatDetailFromDatabase(id);
+  if (!result) throw new ApiError(404, "Sesi riwayat tidak ditemukan.");
+  return result;
 };

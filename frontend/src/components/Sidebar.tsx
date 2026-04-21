@@ -1,33 +1,45 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Village } from "../data/villages";
 import type { WeightFormat } from "../data/master";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import type { BackendPembobotan } from "@/lib/mappers";
+
+import {
+  Field,
+  FieldDescription,
+  FieldLabel,
+} from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
 
 interface SidebarProps {
   isLoading: boolean;
-  onCalculate: (customVillages?: Village[], weightId?: string) => void;
+  onCalculate: (customVillages?: Village[], weightId?: number) => void;
   isOpen: boolean;
   onToggle: () => void;
   masterVillages: Village[];
   masterWeights: WeightFormat[];
+  masterPembobotan: BackendPembobotan[];
 }
 
 const createDraftFromVillage = (village?: Village): Village => ({
-  id: village?.id ?? "temp-village",
+  id: village?.id ?? -1,
   name: village?.name ?? "",
   district: village?.district ?? "",
   lat: village?.lat ?? -8.185,
   lng: village?.lng ?? 113.668,
-  vScore: village?.vScore ?? 0,
-  ranking: village?.ranking ?? 0,
-  komitmen: village?.komitmen ?? 3,
-  remaja: village?.remaja ?? 15,
-  stunting: village?.stunting ?? 10,
-  prevalensi: village?.prevalensi ?? 20,
-  kemiskinan: village?.kemiskinan ?? 15,
-  jarak: village?.jarak ?? 2,
-  tenagaKerja: village?.tenagaKerja ?? 100,
+  values: village?.values ?? {},
 });
 
+
+/// Start Here
 export default function Sidebar({
   isLoading,
   onCalculate,
@@ -35,22 +47,35 @@ export default function Sidebar({
   onToggle,
   masterVillages,
   masterWeights,
+  masterPembobotan,
 }: SidebarProps) {
-  const [inputType, setInputType] = useState<"upload" | "manual">("upload");
+  const [inputType, setInputType] = useState<"upload" | "manual">("manual");
   const [manualVillages, setManualVillages] = useState<Village[]>([]);
-  const [selectedWeightId, setSelectedWeightId] = useState<string>(
-    masterWeights[0]?.id || "",
+  const [selectedWeightId, setSelectedWeightId] = useState<number>(
+    masterPembobotan[0]?.id || 0,
   );
+  const [selectedVillageId, setSelectedVillageId] = useState<number>(() => {
+    const saved = localStorage.getItem("selectedVillageId");
+    return saved ? Number(saved) : -1;
+  });
   const [duplicateError, setDuplicateError] = useState("");
   const [manualDraft, setManualDraft] = useState<Village>(() =>
-    createDraftFromVillage(masterVillages[0]),
+    createDraftFromVillage(),
   );
 
   useEffect(() => {
     if (!masterWeights.some((weight) => weight.id === selectedWeightId)) {
-      setSelectedWeightId(masterWeights[0]?.id || "");
+      setSelectedWeightId(masterWeights[0]?.id || 0);
     }
   }, [masterWeights, selectedWeightId]);
+
+  useEffect(() => {
+    if (selectedVillageId === -1) {
+      localStorage.removeItem("selectedVillageId");
+    } else {
+      localStorage.setItem("selectedVillageId", String(selectedVillageId));
+    }
+  }, [selectedVillageId]);
 
   useEffect(() => {
     if (!masterVillages.length) {
@@ -58,24 +83,29 @@ export default function Sidebar({
     }
 
     const selectedVillage = masterVillages.find(
-      (village) => String(village.id) === String(manualDraft.id),
+      (village) => String(village.id) === String(selectedVillageId),
     );
 
-    if (!selectedVillage) {
-      setManualDraft(createDraftFromVillage(masterVillages[0]));
+    if (selectedVillage) {
+      setManualDraft(createDraftFromVillage(selectedVillage)); // ← auto populate draft
+    } else {
+      setSelectedVillageId(-1);
+      setManualDraft(createDraftFromVillage());
     }
   }, [manualDraft.id, masterVillages]);
 
   const manualVillageCountLabel = useMemo(() => manualVillages.length, [manualVillages]);
 
-  const updateDraftField = (field: keyof Village, value: string | number) => {
-    const nextValue =
-      field === "name" || field === "district" ? value : Number(value);
+  const updateDraftField = (key: string, value: string) => {
 
     setManualDraft((previous) => ({
       ...previous,
-      [field]: nextValue,
+      values: {
+        ...previous.values,
+        [key]: value === "" ? undefined : Number(value),
+      },
     }));
+
   };
 
   const handleVillageSelection = (selectedId: string) => {
@@ -111,7 +141,7 @@ export default function Sidebar({
   return (
     <aside
       className={`
-        fixed lg:relative z-[9999] h-screen bg-white border-r border-slate-200 flex flex-col
+        fixed lg:relative z-[10] h-screen bg-white border-r border-slate-200 flex flex-col
         transition-all duration-300 ease-in-out overflow-hidden
         ${
           isOpen
@@ -123,13 +153,18 @@ export default function Sidebar({
       <div className="w-[300px] min-w-[300px] h-full flex flex-col overflow-y-auto">
         <div className="px-4 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div>
-              <h1 className="text-sm font-bold text-slate-800 leading-tight">
-                DSS Stunting
-              </h1>
-              <p className="text-[11px] text-slate-500 leading-tight">
-                Kabupaten Jember
-              </p>
+            <div className="flex flex-row items-center gap-2">
+              <div className="aspect-square">
+                <img src="/favicon.png" className="max-w-8 " />
+              </div>
+              <div className="h-fit">
+                <h1 className="text-sm font-bold text-slate-800 leading-tight">
+                  DSS Stunting
+                </h1>
+                <p className="text-[11px] text-slate-500 leading-tight">
+                  Kabupaten Jember
+                </p>
+              </div>
             </div>
           </div>
           <button
@@ -158,14 +193,17 @@ export default function Sidebar({
               Input Simulasi
             </h2>
 
-            <div className="mb-3">
+
+            <div className="h-[1px] bg-slate-300 mb-3"></div>
+          
+            <div className="mb-3 ">
               <label className="block text-[10px] font-medium text-slate-700 mb-1">
-                Format Pembobotan
+                Pilih Format Pembobotan <span className="text-destructive">*</span>
               </label>
-              <select
+              {/* <select
                 className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-700 outline-none focus:border-primary transition-colors"
                 value={selectedWeightId}
-                onChange={(event) => setSelectedWeightId(event.target.value)}
+                onChange={(event) => setSelectedWeightId(Number(event.target.value))}
                 disabled={isLoading || !masterWeights.length}
               >
                 {masterWeights.map((weight) => (
@@ -173,21 +211,33 @@ export default function Sidebar({
                     {weight.name}
                   </option>
                 ))}
-              </select>
+              </select> */}
+              <Select
+                value={String(selectedWeightId)}
+                onValueChange={(value) => setSelectedWeightId(Number(value))}
+                disabled={isLoading || !masterPembobotan.length}
+                >
+                <SelectTrigger className="w-full text-xs">
+                  <SelectValue placeholder="Pilih Format Pembobotan" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Format Pembobotan</SelectLabel>
+                    {masterPembobotan.map((weight) => (
+                      <SelectItem key={weight.id} value={String(weight.id)}>
+                        {weight.pembobotan_nama}
+                      </SelectItem>
+                    ))}
+                    
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
             </div>
 
+            <label className="block text-[10px] font-medium text-slate-700 mb-1">
+                Pilih Mode Penilaian
+              </label>  
             <div className="flex bg-slate-100 p-1 rounded-lg mb-3">
-              <button
-                type="button"
-                onClick={() => setInputType("upload")}
-                className={`flex-1 text-xs py-1.5 rounded-md transition-colors ${
-                  inputType === "upload"
-                    ? "bg-white shadow-sm font-medium text-slate-800"
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                Upload File
-              </button>
               <button
                 type="button"
                 onClick={() => setInputType("manual")}
@@ -198,6 +248,17 @@ export default function Sidebar({
                 }`}
               >
                 Input Manual
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputType("upload")}
+                className={`flex-1 text-xs py-1.5 rounded-md transition-colors ${
+                  inputType === "upload"
+                    ? "bg-white shadow-sm font-medium text-slate-800"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                Upload File
               </button>
             </div>
 
@@ -229,108 +290,107 @@ export default function Sidebar({
               <div className="mb-3 space-y-2.5">
                 <div>
                   <label className="block text-[10px] font-medium text-slate-700 mb-1">
-                    Pilih Desa
+                    Pilih Desa <span className="text-destructive">*</span>
                   </label>
-                  <select
-                    className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-700 outline-none focus:border-primary transition-colors"
-                    value={String(manualDraft.id)}
-                    onChange={(event) => handleVillageSelection(event.target.value)}
-                    disabled={isLoading}
+                  <Select
+                    value={selectedVillageId === -1 ? undefined : String(selectedVillageId)}
+                    onValueChange={(value) => {
+                      setSelectedVillageId(Number(value));
+                      handleVillageSelection(value);
+                    }}
                   >
-                    {masterVillages.map((village) => (
-                      <option key={String(village.id)} value={String(village.id)}>
-                        {village.name} ({village.district})
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full text-xs">
+                      <SelectValue placeholder="Pilih Desa"></SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectLabel>Desa</SelectLabel>
+                        {masterVillages.map((village) => (
+                          <SelectItem
+                            key={String(village.id)} value={String(village.id)}
+                          >
+                            {village.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[10px] font-medium text-slate-700 mb-1" title="Komitmen (Skala 1-5)">
-                      1. Komitmen
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="5"
-                      value={manualDraft.komitmen ?? 0}
-                      onChange={(event) => updateDraftField("komitmen", event.target.value)}
-                      disabled={isLoading}
-                      className="w-full text-xs font-medium border border-slate-300 rounded-lg px-2 py-1.5 bg-slate-50 focus:border-primary outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-medium text-slate-700 mb-1" title="Persentase Remaja usia 15-24 (%)">
-                      2. Remaja (%)
-                    </label>
-                    <input
-                      type="number"
-                      value={manualDraft.remaja ?? 0}
-                      onChange={(event) => updateDraftField("remaja", event.target.value)}
-                      disabled={isLoading}
-                      className="w-full text-xs font-medium border border-slate-300 rounded-lg px-2 py-1.5 bg-slate-50 focus:border-primary outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-medium text-slate-700 mb-1" title="Jumlah Anak Stunting (jiwa)">
-                      3. Stunting
-                    </label>
-                    <input
-                      type="number"
-                      value={manualDraft.stunting ?? 0}
-                      onChange={(event) => updateDraftField("stunting", event.target.value)}
-                      disabled={isLoading}
-                      className="w-full text-xs font-medium border border-slate-300 rounded-lg px-2 py-1.5 bg-slate-50 focus:border-primary outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-medium text-slate-700 mb-1" title="Prevalensi Stunting (%)">
-                      4. Prevalensi (%)
-                    </label>
-                    <input
-                      type="number"
-                      value={manualDraft.prevalensi ?? 0}
-                      onChange={(event) => updateDraftField("prevalensi", event.target.value)}
-                      disabled={isLoading}
-                      className="w-full text-xs font-medium border border-slate-300 rounded-lg px-2 py-1.5 bg-slate-50 focus:border-primary outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-medium text-slate-700 mb-1" title="Tingkat Kemiskinan (%)">
-                      5. Kemiskinan (%)
-                    </label>
-                    <input
-                      type="number"
-                      value={manualDraft.kemiskinan ?? 0}
-                      onChange={(event) => updateDraftField("kemiskinan", event.target.value)}
-                      disabled={isLoading}
-                      className="w-full text-xs font-medium border border-slate-300 rounded-lg px-2 py-1.5 bg-slate-50 focus:border-primary outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-medium text-slate-700 mb-1" title="Jarak ke Puskesmas (Km)">
-                      6. Jarak (Km)
-                    </label>
-                    <input
-                      type="number"
-                      value={manualDraft.jarak ?? 0}
-                      onChange={(event) => updateDraftField("jarak", event.target.value)}
-                      disabled={isLoading}
-                      className="w-full text-xs font-medium border border-slate-300 rounded-lg px-2 py-1.5 bg-slate-50 focus:border-primary outline-none"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-[10px] font-medium text-slate-700 mb-1" title="Jumlah Tenaga Kerja (orang)">
-                      7. Tenaga Kerja (org)
-                    </label>
-                    <input
-                      type="number"
-                      value={manualDraft.tenagaKerja ?? 0}
-                      onChange={(event) => updateDraftField("tenagaKerja", event.target.value)}
-                      disabled={isLoading}
-                      className="w-full text-xs font-medium border border-slate-300 rounded-lg px-2 py-1.5 bg-slate-50 focus:border-primary outline-none"
-                    />
+                <label className="block text-[10px] font-medium text-slate-700 mt-3 mb-3">
+                    Masukkan Nilai Kriteria Desa
+                  </label>
+                <div className="">
+                  {}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Field className="gap-2">
+                        <FieldLabel className="block text-[10px] font-medium text-slate-700 ">
+                          1. Komitmen (1-5) <span className="text-destructive">*</span>
+                        </FieldLabel>
+                        <Input value={manualDraft.values["1"] ?? ""} required className="w-full text-xs" disabled={isLoading} onChange={(e) => updateDraftField("1", e.target.value)} type="number" min={1} max={5} >
+                        </Input>
+                      </Field>
+                      
+                    </div>
+                    <div>
+                      <Field className="gap-2">
+                        <FieldLabel className="block text-[10px] font-medium text-slate-700 ">
+                          2. Remaja (%) <span className="text-destructive">*</span>
+                        </FieldLabel>
+                        <Input value={manualDraft.values["2"] ?? ""} required className="w-full text-xs" disabled={isLoading} onChange={(e) => updateDraftField("2", e.target.value)} type="number" min={0} max={100} >
+                        </Input>
+                      </Field>
+                    </div>
+                    <div>
+                      <Field className="gap-2">
+                        <FieldLabel className="block text-[10px] font-medium text-slate-700 ">
+                          3. Stunting (org) <span className="text-destructive">*</span>
+                        </FieldLabel>
+                        <Input value={manualDraft.values["3"] ?? ""} required className="w-full text-xs" disabled={isLoading} onChange={(e) => updateDraftField("3", e.target.value)} type="number" min={0} >
+                        </Input>
+                      </Field>
+                      
+                    </div>
+                    <div>
+                      <Field className="gap-2">
+                        <FieldLabel className="block text-[10px] font-medium text-slate-700 ">
+                          4. Prevalensi Stunting (%) <span className="text-destructive">*</span>
+                        </FieldLabel>
+                        <Input value={manualDraft.values["4"] ?? ""} required className="w-full text-xs" disabled={isLoading} onChange={(e) => updateDraftField("4", e.target.value)} type="number" min={0} >
+                        </Input>
+                      </Field>
+                      
+                    </div>
+                    <div>
+                      <Field className="gap-2">
+                        <FieldLabel className="block text-[10px] font-medium text-slate-700 ">
+                          5. Tingkat kemiskinan (%) <span className="text-destructive">*</span>
+                        </FieldLabel>
+                        <Input value={manualDraft.values["5"] ?? ""} required className="w-full text-xs" disabled={isLoading} onChange={(e) => updateDraftField("5", e.target.value)} type="number" min={0} >
+                        </Input>
+                      </Field>
+                      
+                    </div>
+                    <div>
+                      <Field className="gap-2">
+                        <FieldLabel className="block text-[10px] font-medium text-slate-700 ">
+                          6. Jarak Fasilitas (km) <span className="text-destructive">*</span>
+                        </FieldLabel>
+                        <Input value={manualDraft.values["6"] ?? ""} required className="w-full text-xs" disabled={isLoading} onChange={(e) => updateDraftField("6", e.target.value)} type="number" min={0} >
+                        </Input>
+                      </Field>
+                      
+                    </div>
+                    <div className="col-span-2">
+                      <Field className="gap-2">
+                        <FieldLabel className="block text-[10px] font-medium text-slate-700 ">
+                          7. Tenaga kerja Medis (org) <span className="text-destructive">*</span>
+                        </FieldLabel>
+                        <Input value={manualDraft.values["7"] ?? ""} required className="w-full text-xs" disabled={isLoading} onChange={(e) => updateDraftField("7", e.target.value)} type="number" min={0} >
+                        </Input>
+                      </Field>
+                    </div>
                   </div>
                 </div>
 
@@ -346,13 +406,13 @@ export default function Sidebar({
                   disabled={isLoading}
                   className="w-full mt-3 bg-white border border-primary text-primary hover:bg-primary-50 font-medium py-1.5 px-3 rounded-lg transition-colors text-xs disabled:opacity-60 disabled:cursor-not-allowed text-center"
                 >
-                  + Tambah Data Desa
+                  + Tambah ke data analisis
                 </button>
 
                 {manualVillages.length > 0 && (
                   <div className="mt-3 bg-slate-50 border border-slate-200 rounded-lg p-2">
                     <h3 className="text-[10px] font-semibold text-slate-500 mb-2">
-                      Data Ditambahkan ({manualVillageCountLabel})
+                      Alternatif Desa Siap Analisis ({manualVillageCountLabel})
                     </h3>
                     <ul className="space-y-1.5 max-h-[100px] overflow-y-auto pr-1">
                       {manualVillages.map((item, index) => (
@@ -396,6 +456,7 @@ export default function Sidebar({
               onClick={() => {
                 if (inputType === "manual") {
                   onCalculate(manualVillages, selectedWeightId);
+                  setManualVillages([]);
                 } else {
                   onCalculate(undefined, selectedWeightId);
                 }
@@ -453,9 +514,11 @@ export default function Sidebar({
           </div>
         </div>
 
+        
+
         <div className="border-t border-slate-200 mx-4" />
 
-        <div className="px-4 py-2.5 border-t border-slate-200 bg-slate-50 flex-shrink-0">
+        <div className="px-4 py-2.5 border-t border-slate-200 bg-slate-50 w-full text-center">
           <p className="text-[10px] text-slate-400 text-center">
             DSS Stunting v1.0 - Kabupaten Jember 2026
           </p>

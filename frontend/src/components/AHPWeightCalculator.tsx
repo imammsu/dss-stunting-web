@@ -19,7 +19,8 @@ interface AHPWeightCalculatorProps {
     name: string,
     weights: MasterWeights,
     preferences: Record<string, PreferenceState>,
-    id?: string,
+    id?: number,
+    cr?: number,
   ) => void;
   onCancel: () => void;
 }
@@ -32,6 +33,7 @@ export default function AHPWeightCalculator({
   const [formatName, setFormatName] = useState(initialFormat?.name || "");
   const criteria = criteriaDefinitions;
   const n = criteria.length;
+
 
   let basePreferences: Record<string, PreferenceState> = {};
   if (initialFormat?.ahpPreferences) {
@@ -92,6 +94,7 @@ export default function AHPWeightCalculator({
         }
       }
 
+
       const result = await calculateAhpWeights(criteria, comparisons);
 
       if (!result.consistency.isConsistent) {
@@ -101,7 +104,8 @@ export default function AHPWeightCalculator({
         return;
       }
 
-      onSave(formatName, result.weights, preferences, initialFormat?.id);
+
+      onSave(formatName, result.weights, preferences, initialFormat?.id, result.consistency.cr);
     } catch (error) {
       const message =
         error instanceof Error
@@ -187,7 +191,7 @@ export default function AHPWeightCalculator({
               {Array.from({ length: n }).map((_, i) =>
                 Array.from({ length: n }).map((__, j) => {
                   if (j <= i) return null;
-                  const preference = preferences[`${i}-${j}`];
+                  const preference = preferences[`${i}-${j}`] || { value: 1, side: null };
 
                   return (
                     <div key={`${i}-${j}`} className="flex flex-col items-center">

@@ -140,6 +140,54 @@ export const calculateAHP = ({
   const ri = RI_VALUES[size] ?? 1.49;
   const cr = ri === 0 ? 0 : ci / ri;
 
+  let note = "Matriks perbandingan konsisten.";
+  
+  if (cr > maxCr) {
+    note = "Matriks belum konsisten. Tinjau ulang perbandingan yang terlalu ekstrem atau saling bertentangan.";
+    
+    // Analisis inkonsistensi: cari sel dengan error terbesar (aktual vs ideal)
+    let maxDiff = 0;
+    let worstI = -1;
+    let worstJ = -1;
+
+    for (let i = 0; i < size; i++) {
+      for (let j = i + 1; j < size; j++) {
+        const actual = matrix[i][j];
+        const ideal = weights[i] / weights[j];
+        // Error dihitung dari rasio terbesar (karena bisa < 1 atau > 1)
+        const diff = Math.max(actual / ideal, ideal / actual);
+        
+        if (diff > maxDiff) {
+          maxDiff = diff;
+          worstI = i;
+          worstJ = j;
+        }
+      }
+    }
+
+    if (worstI !== -1 && worstJ !== -1) {
+      const idealVal = weights[worstI] / weights[worstJ];
+      const leftName = normalizedCriteria[worstI].label;
+      const rightName = normalizedCriteria[worstJ].label;
+
+      let suggestedValue = roundNumber(idealVal, 0);
+      
+      if (suggestedValue < 1) {
+         suggestedValue = roundNumber(1 / idealVal, 0);
+         // Saaty scale max is 9
+         suggestedValue = Math.min(suggestedValue, 9);
+         note = `Matriks belum konsisten. Saran perbaikan: Tinjau ulang perbandingan antara "${leftName}" dan "${rightName}". Cobalah untuk mengaturnya mendekati skala ${suggestedValue} berpihak pada "${rightName}".`;
+      } else {
+         suggestedValue = Math.min(suggestedValue, 9);
+         note = `Matriks belum konsisten. Saran perbaikan: Tinjau ulang perbandingan antara "${leftName}" dan "${rightName}". Cobalah untuk mengaturnya mendekati skala ${suggestedValue} berpihak pada "${leftName}".`;
+      }
+
+      if (suggestedValue === 1) {
+         note = `Matriks belum konsisten. Saran perbaikan: Tinjau ulang perbandingan antara "${leftName}" dan "${rightName}". Cobalah untuk mengaturnya menjadi "Sama Penting".`;
+      }
+    }
+  }
+
   return {
     criteriaCount: size,
     matrix: matrix.map((row) => row.map((value) => roundNumber(value))),
@@ -157,10 +205,7 @@ export const calculateAHP = ({
       cr: roundNumber(cr),
       maxCr: roundNumber(maxCr),
       isConsistent: cr <= maxCr,
-      note:
-        cr <= maxCr
-          ? "Matriks perbandingan konsisten."
-          : "Matriks belum konsisten. Tinjau ulang perbandingan yang terlalu ekstrem atau saling bertentangan.",
+      note,
     },
   };
 };

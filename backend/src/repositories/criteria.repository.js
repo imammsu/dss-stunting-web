@@ -10,7 +10,7 @@ export const listCriteriaFromDatabase = async () => {
       k.id,
       k.kode,
       k.nama,
-      k.tipe,
+      k.is_benefit,
       k.satuan,
       ph.bobot AS weight
     FROM kriteria k
@@ -22,7 +22,7 @@ export const listCriteriaFromDatabase = async () => {
         ORDER BY created_at DESC
         LIMIT 1
       )
-    ORDER BY k.nama ASC
+    ORDER BY k.id ASC
   `;
  
   const result = await pool.query(query);

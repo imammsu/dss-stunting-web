@@ -10,6 +10,7 @@ interface RankingTableProps {
   historyOptions?: { id: string; label: string }[];
   selectedHistoryId?: string;
   onHistorySelect?: (id: string) => void;
+  isLoadingHistory?: boolean;
 }
 
 export default function RankingTable({
@@ -20,6 +21,7 @@ export default function RankingTable({
   historyOptions,
   selectedHistoryId,
   onHistorySelect,
+  isLoadingHistory = false,
 }: RankingTableProps) {
   const rowRefs = useRef<Map<string | number, HTMLTableRowElement>>(new Map());
 
@@ -31,6 +33,7 @@ export default function RankingTable({
 
   useEffect(() => {
     if (selectedVillage) {
+      
       const row = rowRefs.current.get(selectedVillage.id);
       if (row) {
         row.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -38,32 +41,29 @@ export default function RankingTable({
     }
   }, [selectedVillage]);
 
+  // Belum ada data riwayat sama sekali
   if (!isCalculated) {
     return (
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8 flex flex-col items-center justify-center text-center h-full">
-        <svg
-          className="w-12 h-12 text-slate-400 mb-3"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={1.5}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M13.125 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M20.625 12c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5M12 14.625v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 14.625c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125m0 0v1.5c0 .621-.504 1.125-1.125 1.125"
-          />
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8 flex flex-col items-center justify-center text-center h-full gap-3">
+        <svg className="w-12 h-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25" />
         </svg>
-        <p className="text-sm text-slate-800 font-medium">Tabel Perankingan</p>
-        <p className="text-xs text-slate-500 mt-1">
-          Data akan muncul setelah simulasi dijalankan
-        </p>
+        <p className="text-sm text-slate-700 font-semibold">Belum Ada Data Perankingan</p>
+        <p className="text-xs text-slate-400">Klik tombol <strong>Analisis Prioritas</strong> di sidebar untuk mulai menghitung.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-full overflow-hidden">
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-full overflow-hidden relative">
+      {/* Loading overlay saat fetch sesi lama */}
+      {isLoadingHistory && (
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20 gap-2">
+          <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+          <p className="text-xs text-slate-500 font-medium">Memuat riwayat...</p>
+        </div>
+      )}
+
       <div className="flex flex-col gap-3 px-4 py-3 border-b border-slate-200 bg-slate-50/50 flex-shrink-0">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
@@ -119,7 +119,7 @@ export default function RankingTable({
             <select
               className="w-full appearance-none bg-white border border-slate-300 text-slate-700 text-xs py-2 pl-3 pr-8 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-sm font-medium transition-colors hover:border-slate-400"
               value={selectedHistoryId}
-              onChange={(event) => onHistorySelect?.(event.target.value)}
+              onChange={(event) => {onHistorySelect?.(event.target.value); console.log(event.target.value)}}
             >
               {historyOptions.map((option) => (
                 <option key={option.id} value={option.id}>
@@ -164,6 +164,7 @@ export default function RankingTable({
           <tbody>
             {villages.map((village) => {
               const isSelected = selectedVillage?.id === village.id;
+              
               const color = getStatusColor(village.vScore);
 
               return (
@@ -175,11 +176,10 @@ export default function RankingTable({
                     }
                   }}
                   onClick={() => onVillageSelect(village)}
-                  className={`cursor-pointer transition-colors duration-150 border-b border-slate-100 last:border-b-0 ${
-                    isSelected
+                  className={`cursor-pointer transition-colors duration-150 border-b border-slate-100 last:border-b-0 ${isSelected
                       ? "bg-primary/5 hover:bg-primary/10"
                       : "hover:bg-slate-50"
-                  }`}
+                    }`}
                 >
                   <td className="px-4 py-2">
                     <span

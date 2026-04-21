@@ -4,7 +4,26 @@
 import type { CriterionDefinition, WeightFormat } from "../data/master";
 import type { Village } from "../data/villages";
 import { requestJson } from "./api";
-import { mapValuesToWeights } from "./mappers";
+import { mapValuesToWeights, type BackendCriterion, type BackendPembobotan } from "./mappers";
+
+export interface RiwayatListItem {
+  id: number;
+  nama_sesi: string;
+  created_at: string;
+  nama_pembobotan: string | null;
+}
+
+export interface RiwayatDetail extends RiwayatListItem {
+  villages: Village[];
+}
+
+/** Ambil daftar semua sesi riwayat (terbaru di atas). */
+export const fetchRiwayatList = () =>
+  requestJson<RiwayatListItem[]>("/decision/riwayat", { auth: true });
+
+/** Ambil detail satu sesi riwayat beserta data desa. */
+export const fetchRiwayatDetail = (id: number) =>
+  requestJson<RiwayatDetail>(`/decision/riwayat/${id}`, { auth: true });
 
 export interface AhpComparison {
   left: string;
@@ -42,7 +61,7 @@ export interface DecisionAlternativeInput {
 }
 
 export const calculateAhpWeights = async (
-  criteria: CriterionDefinition[],
+  criteria: BackendCriterion[],
   comparisons: AhpComparison[],
 ) => {
   const response = await requestJson<AhpResponse>("/decision/ahp/weights", {
@@ -69,45 +88,65 @@ export const calculateAhpWeights = async (
 
 export const rankVillagesWithTopsis = async (
   villages: Village[],
-  selectedWeight: WeightFormat,
-  criteria: CriterionDefinition[],
+  selectedWeight: BackendPembobotan,
+  criteria: BackendCriterion[],
+  saveToDb: boolean = false,
+  sessionName?: string
 ) => {
   const alternatives: DecisionAlternativeInput[] = villages.map((village) => ({
     id: village.id,
     name: village.name,
-    values: {
-      komitmen: village.komitmen ?? 0,
-      remaja: village.remaja ?? 0,
-      stunting: village.stunting ?? 0,
-      prevalensi: village.prevalensi ?? 0,
-      kemiskinan: village.kemiskinan ?? 0,
-      jarak: village.jarak ?? 0,
-      tenagaKerja: village.tenagaKerja ?? 0,
-    },
+    values: Object.fromEntries(
+      criteria.map((criterion) => {
+        // Mendukung data statis (properti langsung) maupun data DB (dalam village.values[id_kriteria])
+        const dbId = criterion.raw?.id as string | number | undefined;
+        const val =
+          (village[criterion.id] as number | undefined) ??
+          (dbId ? village.values?.[dbId] : undefined) ??
+          village.values?.[criterion.id] ??
+          0;
+        return [criterion.id, Number(val)];
+      })
+    ),
   }));
 
-  const response = await requestJson<TopsisResponse>("/decision/topsis/rank", {
+  // Buat lookup bobot: id_kriteria (integer DB) -> bobot
+  // Ini lebih andal dari string matching nama_kriteria
+  const dbIdToBobot: Record<number, number> = {};
+  selectedWeight.kriteria.forEach(k => {
+    dbIdToBobot[k.id_kriteria] = k.bobot;
+  });
+
+  const response = await requestJson<TopsisResponse & { id_riwayat_ranking?: number }>("/decision/topsis/rank", {
     method: "POST",
     auth: true,
     body: {
-      criteria: criteria.map((criterion) => ({
-        id: criterion.id,
-        label: criterion.label,
-        weight: selectedWeight.weights[criterion.id],
-        type: criterion.type,
-      })),
+      save_to_db: saveToDb,
+      session_name: sessionName,
+      weight_id: selectedWeight.id,
+      criteria: criteria.map((criterion) => {
+        const dbId = criterion.raw?.id as number | undefined;
+        return {
+          id: criterion.id,
+          label: criterion.label,
+          weight: dbId !== undefined ? (dbIdToBobot[dbId] ?? 0) : 0,
+          type: criterion.type,
+          dbId: dbId,
+        };
+      }),
       alternatives,
     },
   });
+
+
 
   const rankById = new Map(
     response.rankedAlternatives.map((item) => [String(item.id), item]),
   );
 
-  return villages
+  const rankedVillages = villages
     .map((village) => {
       const ranked = rankById.get(String(village.id));
-
       return {
         ...village,
         ranking: ranked?.rank ?? 0,
@@ -119,4 +158,10 @@ export const rankVillagesWithTopsis = async (
       ...village,
       ranking: index + 1,
     }));
+
+  return {
+    villages: rankedVillages,
+    /** ID integer dari tabel riwayat_ranking di DB (ada hanya jika saveToDb = true) */
+    dbId: response.id_riwayat_ranking,
+  };
 };

@@ -18,13 +18,15 @@ import {
   logoutFromApp,
   registerWithPassword,
 } from "./lib/auth";
-import { rankVillagesWithTopsis } from "./lib/decision";
+import { rankVillagesWithTopsis, fetchRiwayatList, fetchRiwayatDetail, type RiwayatListItem } from "./lib/decision";
 import {
   fetchBootstrapData,
+  fetchPembobotan,
 } from "./lib/master";
 import {
-  mapAlternativeToVillage,
-  mapCriteriaToWeightFormat,
+  mapAlternativeToVillages,
+  type BackendCriterion,
+  type BackendPembobotan,
 } from "./lib/mappers";
 
 interface HistoryRecord {
@@ -59,14 +61,14 @@ const buildAnalysisLabel = (date = new Date()) => {
   return `Analisis ${DAYS[date.getDay()]}, ${date.getDate()} ${MONTHS[date.getMonth()]} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
-const createHistoryRecord = (results: Village[], customLabel?: string): HistoryRecord => ({
-  id: `hist-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+const createHistoryRecord = (results: Village[], customLabel?: string, customId?: string): HistoryRecord => ({
+  id: customId ?? `hist-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   label: customLabel || buildAnalysisLabel(),
   results,
 });
 
 const seedResults = [...villagesData]
-  .sort((left, right) => right.vScore - left.vScore)
+  // .sort((left, right) => right.vScore - left.vScore)
   .map((village, index) => ({
     ...village,
     ranking: index + 1,
@@ -87,9 +89,15 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [analysisCount, setAnalysisCount] = useState(seedResults.length);
   const [masterVillages, setMasterVillages] = useState<Village[]>(villagesData);
+  const [masterCriteria, setMasterCriteria] = useState<BackendCriterion[]>(criteriaDefinitions);
+  const [masterPembobotan, setMasterPembobotan] = useState<BackendPembobotan[]>([]);
   const [masterWeights, setMasterWeights] = useState<WeightFormat[]>(defaultWeightFormats);
   const [isMasterModalOpen, setMasterModalOpen] = useState(false);
   const [dataSourceLabel, setDataSourceLabel] = useState("Belum dimuat");
+  /** Daftar sesi riwayat dari DB — digunakan untuk dropdown di RankingTable */
+  const [riwayatList, setRiwayatList] = useState<RiwayatListItem[]>([]);
+  /** true saat sedang fetch detail sesi lama dari DB */
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   const pushNotice = useCallback((message: string, type: AppNotice["type"] = "info") => {
     setNotice({ message, type });
@@ -134,50 +142,39 @@ export default function App() {
   const loadBootstrap = useCallback(async (showSuccessMessage = false) => {
     try {
       const bootstrap = await fetchBootstrapData();
-      const villagesFromBackend = bootstrap.alternatives.map((alternative, index) =>
-        mapAlternativeToVillage(alternative, index + 1),
+      const villagesFromBackend = bootstrap.alternatives.map((alternative) =>
+        mapAlternativeToVillages(alternative),
       );
-      const databaseWeightFormat = mapCriteriaToWeightFormat(bootstrap.criteria);
 
       if (!villagesFromBackend.length) {
         applyFallbackData("Backend aktif, tetapi tabel alternatif masih kosong. Menggunakan data lokal sementara.");
         return;
       }
 
+      const pembobotan = await fetchPembobotan();
       setMasterVillages(villagesFromBackend);
+      setMasterCriteria(bootstrap.criteria);
       setDataSourceLabel("Supabase melalui backend Express");
+      setMasterPembobotan(pembobotan);
 
-      setMasterWeights((previous) => {
-        const withoutDatabaseDefault = previous.filter(
-          (weight) => weight.id !== "database-default",
-        );
-
-        if (!databaseWeightFormat) {
-          return withoutDatabaseDefault.length
-            ? withoutDatabaseDefault
-            : defaultWeightFormats;
+      // Auto-load riwayat terbaru dari DB
+      try {
+        const riwayat = await fetchRiwayatList();
+        setRiwayatList(riwayat);
+        if (riwayat.length > 0) {
+          const latest = riwayat[0];
+          const detail = await fetchRiwayatDetail(latest.id);
+          const record: HistoryRecord = {
+            id: String(latest.id),
+            label: latest.nama_sesi,
+            results: detail.villages,
+          };
+          setHistory([record]);
+          setSelectedHistoryId(record.id);
+          setIsCalculated(true);
         }
-
-        return [databaseWeightFormat, ...withoutDatabaseDefault];
-      });
-
-      if (databaseWeightFormat && villagesFromBackend.length > 1) {
-        const rankedVillages = await rankVillagesWithTopsis(
-          villagesFromBackend,
-          databaseWeightFormat,
-          criteriaDefinitions,
-        );
-        const initialRecord = createHistoryRecord(
-          rankedVillages,
-          "Analisis awal dari database",
-        );
-        setHistory([initialRecord]);
-        setSelectedHistoryId(initialRecord.id);
-        setIsCalculated(true);
-      } else {
-        setHistory([]);
-        setSelectedHistoryId("");
-        setIsCalculated(false);
+      } catch {
+        // Belum ada riwayat — biarkan kosong, bukan error fatal
       }
 
       if (showSuccessMessage) {
@@ -222,9 +219,11 @@ export default function App() {
   }, [loadBootstrap, pushNotice]);
 
   const handleCalculate = useCallback(
-    async (customVillages?: Village[], weightId?: string) => {
+    async (customVillages?: Village[], weightId?: number) => {
+      // masterPembobotan adalah sumber kebenaran — ID-nya = id_pembobotan_kriteria di DB
       const activeWeight =
-        masterWeights.find((weight) => weight.id === weightId) || masterWeights[0];
+        masterPembobotan.find((p) => p.id === weightId) || masterPembobotan[0];
+
       const villagesToAnalyze =
         customVillages && customVillages.length > 0 ? customVillages : masterVillages;
 
@@ -243,17 +242,37 @@ export default function App() {
         setAnalysisCount(villagesToAnalyze.length);
         setSelectedVillage(null);
 
-        const rankedVillages = await rankVillagesWithTopsis(
+        const sessionName = `${activeWeight.pembobotan_nama} - ${new Date().toLocaleTimeString("id-ID", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}`;
+
+        const result = await rankVillagesWithTopsis(
           villagesToAnalyze,
           activeWeight,
-          criteriaDefinitions,
+          masterCriteria,
+          true,
+          sessionName,
         );
-        const newRecord = createHistoryRecord(rankedVillages);
+
+        // Gunakan DB ID (integer) sebagai ID record agar handleHistorySelect
+        // bisa memanggil fetchRiwayatDetail(Number(id)) tanpa NaN
+        const recordId = result.dbId ? String(result.dbId) : `hist-${Date.now()}`;
+        const newRecord = createHistoryRecord(result.villages, sessionName, recordId);
 
         setHistory((previous) => [newRecord, ...previous]);
         setSelectedHistoryId(newRecord.id);
         setIsCalculated(true);
-        pushNotice("Perankingan TOPSIS berhasil dihitung dari backend.", "success");
+        // Update dropdown dengan DB ID yang benar
+        if (result.dbId) {
+          setRiwayatList((prev) => [{
+            id: result.dbId!,
+            nama_sesi: sessionName,
+            created_at: new Date().toISOString(),
+            nama_pembobotan: null,
+          }, ...prev]);
+        }
+        pushNotice("Perankingan TOPSIS berhasil dihitung dan disimpan.", "success");
       } catch (error) {
         const message =
           error instanceof Error
@@ -264,12 +283,40 @@ export default function App() {
         setIsLoading(false);
       }
     },
-    [masterVillages, masterWeights, pushNotice],
+    [masterVillages, masterCriteria, masterPembobotan, pushNotice],
   );
 
   const handleVillageSelect = useCallback((village: Village) => {
     setSelectedVillage(village);
   }, []);
+
+  /** Dipanggil saat user memilih sesi riwayat dari dropdown */
+  const handleHistorySelect = useCallback(async (id: string) => {
+    // Gunakan cache jika sudah ada
+    const cached = history.find((h) => h.id === id);
+    if (cached) {
+      setSelectedHistoryId(id);
+      setSelectedVillage(null);
+      return;
+    }
+    // Fetch dari DB
+    try {
+      setIsLoadingHistory(true);
+      const detail = await fetchRiwayatDetail(Number(id));
+      const record: HistoryRecord = {
+        id,
+        label: detail.nama_sesi,
+        results: detail.villages,
+      };
+      setHistory((prev) => [...prev, record]);
+      setSelectedHistoryId(id);
+      setSelectedVillage(null);
+    } catch {
+      pushNotice("Gagal memuat detail riwayat.", "error");
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  }, [history, pushNotice]);
 
   const handleLogin = useCallback(
     async (email: string, password: string) => {
@@ -331,10 +378,10 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 text-slate-900 font-['Inter',sans-serif] overflow-hidden">
+    <div className="flex h-screen bg-slate-50 text-slate-900 font-sans overflow-hidden">
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/20 z-[9998] lg:hidden"
+          className="fixed inset-0 bg-slate-900/20 z-[10] lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -346,6 +393,7 @@ export default function App() {
         onToggle={() => setSidebarOpen((value) => !value)}
         masterVillages={masterVillages}
         masterWeights={masterWeights}
+        masterPembobotan={masterPembobotan}
       />
 
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
@@ -397,13 +445,12 @@ export default function App() {
         {notice && (
           <div className="px-3 pt-3 flex-shrink-0">
             <div
-              className={`rounded-xl border px-4 py-2.5 text-sm shadow-sm ${
-                notice.type === "success"
-                  ? "bg-green-50 border-green-200 text-green-700"
-                  : notice.type === "error"
-                    ? "bg-red-50 border-red-200 text-red-700"
-                    : "bg-sky-50 border-sky-200 text-sky-700"
-              }`}
+              className={`rounded-xl border px-4 py-2.5 text-sm shadow-sm ${notice.type === "success"
+                ? "bg-green-50 border-green-200 text-green-700"
+                : notice.type === "error"
+                  ? "bg-red-50 border-red-200 text-red-700"
+                  : "bg-sky-50 border-sky-200 text-sky-700"
+                }`}
             >
               {notice.message}
             </div>
@@ -426,9 +473,10 @@ export default function App() {
               selectedVillage={selectedVillage}
               onVillageSelect={handleVillageSelect}
               isCalculated={isCalculated}
-              historyOptions={history.map((item) => ({ id: item.id, label: item.label }))}
+              historyOptions={riwayatList.map((r) => ({ id: String(r.id), label: r.nama_sesi }))}
               selectedHistoryId={selectedHistoryId}
-              onHistorySelect={setSelectedHistoryId}
+              onHistorySelect={handleHistorySelect}
+              isLoadingHistory={isLoadingHistory}
             />
           </div>
         </div>
@@ -452,6 +500,8 @@ export default function App() {
           setVillages={setMasterVillages}
           weights={masterWeights}
           setWeights={setMasterWeights}
+          pembobotan={masterPembobotan}
+          setPembobotan={setMasterPembobotan}
           onClose={() => setMasterModalOpen(false)}
         />
       )}

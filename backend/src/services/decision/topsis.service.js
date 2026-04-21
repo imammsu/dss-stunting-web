@@ -14,9 +14,11 @@ const roundNumber = (value, digits = 6) =>
   Number(Number(value).toFixed(digits));
 
 const normalizeCriteria = (criteria = []) => {
+  
   if (!Array.isArray(criteria) || criteria.length === 0) {
     throw new ApiError(400, "Data kriteria TOPSIS wajib diisi.");
   }
+
 
   const totalWeight = criteria.reduce((sum, criterion, index) => {
     const weight = Number(criterion.weight);
@@ -24,14 +26,14 @@ const normalizeCriteria = (criteria = []) => {
     if (!criterion?.id) {
       throw new ApiError(400, `Kriteria ke-${index + 1} belum memiliki id.`);
     }
-
+    
     if (!Number.isFinite(weight) || weight < 0) {
       throw new ApiError(400, `Bobot kriteria ${criterion.id} tidak valid.`);
     }
-
+    
     return sum + weight;
   }, 0);
-
+  
   if (totalWeight <= 0) {
     throw new ApiError(400, "Total bobot kriteria harus lebih besar dari 0.");
   }
@@ -218,5 +220,35 @@ export const rankWithTopsis = ({ criteria, alternatives }) => {
       ]),
     ),
     rankedAlternatives,
+  };
+};
+
+import { saveRankingTransaction } from "../../repositories/ranking.repository.js";
+
+export const saveTopsisRanking = async (
+  inputData,
+  { nama_sesi, id_pembobotan_kriteria, user_email }
+) => {
+  // Hitung TOPSIS secara normal
+  const result = rankWithTopsis(inputData);
+
+  // Jika input criteria mengandung 'dbId', gunakan itu.
+  const mappedCriteria = inputData.criteria.map((c) => ({
+    id: c.id,
+    dbId: c.dbId
+  }));
+
+  // Simpan hasil ke database
+  const id_riwayat_ranking = await saveRankingTransaction({
+    nama_sesi,
+    id_pembobotan_kriteria,
+    user_email,
+    rankedAlternatives: result.rankedAlternatives,
+    criteria: mappedCriteria
+  });
+
+  return {
+    ...result,
+    id_riwayat_ranking
   };
 };

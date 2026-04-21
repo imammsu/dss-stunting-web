@@ -1,3 +1,5 @@
+import type { BackendCriterion } from "../lib/mappers";
+
 export interface MasterWeights {
   komitmen: number;
   stunting: number;
@@ -6,15 +8,18 @@ export interface MasterWeights {
   remaja: number;
   jarak: number;
   tenagaKerja: number;
+  [key: string]: number;
 }
 
 export interface WeightFormat {
-  id: string;
+  id: number;
   name: string;
+  kode?: string;
   weights: MasterWeights;
   ahpPreferences?: Record<string, { value: number; side: "left" | "right" | null }>;
   dbId?: string; // Optional field for database ID
 }
+
 
 export interface CriterionDefinition {
   id: string;
@@ -22,20 +27,20 @@ export interface CriterionDefinition {
   type: "benefit" | "cost";
 }
 
-export const criteriaDefinitions: CriterionDefinition[] = [
-  { id: "komitmen",    label: "Komitmen",     type: "benefit" },
-  { id: "remaja",      label: "Remaja",       type: "cost"    },
-  { id: "stunting",    label: "Stunting",     type: "benefit" },
-  { id: "prevalensi",  label: "Prevalensi",   type: "benefit" },
-  { id: "kemiskinan",  label: "Kemiskinan",   type: "benefit" },
-  { id: "jarak",       label: "Jarak",        type: "cost"    },
-  { id: "tenagaKerja", label: "Tenaga Kerja", type: "benefit" },
+export const criteriaDefinitions: BackendCriterion[] = [
+  { id: "komitmen",    label: "Komitmen",     type: "benefit" , satuan: "1-5"},
+  { id: "remaja",      label: "Remaja",       type: "cost"    , satuan: "jumlah"},
+  { id: "stunting",    label: "Stunting",     type: "benefit" , satuan: "persen"},
+  { id: "prevalensi",  label: "Prevalensi",   type: "benefit" , satuan: "persen"},
+  { id: "kemiskinan",  label: "Kemiskinan",   type: "benefit" , satuan: "persen"},
+  { id: "jarak",       label: "Jarak",        type: "cost"    , satuan: "km"},
+  { id: "tenagaKerja", label: "Tenaga Kerja", type: "benefit" , satuan: "jumlah"},
 ];
 
 
 export const defaultWeightFormats: WeightFormat[] = [
   {
-    id: "format-1",
+    id: 1,
     name: "Pembobotan 1 (Default AHP-TOPSIS)",
     weights: {
       komitmen: 0.2,
@@ -48,7 +53,7 @@ export const defaultWeightFormats: WeightFormat[] = [
     },
   },
   {
-    id: "format-2",
+    id: 2,
     name: "Pembobotan Fokus Kesehatan",
     weights: {
       komitmen: 0.1,
