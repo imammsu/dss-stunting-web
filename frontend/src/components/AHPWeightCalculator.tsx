@@ -151,7 +151,7 @@ export default function AHPWeightCalculator({
           </h2>
           <button
             onClick={onCancel}
-            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
+            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
           >
             <svg
               className="w-5 h-5"
@@ -204,7 +204,7 @@ export default function AHPWeightCalculator({
                                 preference.value === 1 ? 3 : preference.value,
                             })
                           }
-                          className={`w-36 py-2 px-2 text-xs font-semibold border-2 rounded-xl text-center transition-all ${
+                          className={`w-36 py-2 px-2 text-xs font-semibold border-2 rounded-xl text-center transition-all cursor-pointer ${
                             preference.side === "left"
                               ? "border-primary bg-primary text-white shadow-md shadow-primary/20 scale-105"
                               : "border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
@@ -231,7 +231,7 @@ export default function AHPWeightCalculator({
                                     handlePrefChange(i, j, { value: scale });
                                   }
                                 }}
-                                className={`w-7 h-7 flex items-center justify-center rounded text-xs font-bold transition-all ${
+                                className={`w-7 h-7 flex items-center justify-center rounded text-xs font-bold transition-all cursor-pointer ${
                                   isDisabled ? "opacity-30 cursor-not-allowed" : ""
                                 } ${
                                   preference.value === scale && !isDisabled
@@ -255,7 +255,7 @@ export default function AHPWeightCalculator({
                                 preference.value === 1 ? 3 : preference.value,
                             })
                           }
-                          className={`w-36 py-2 px-2 text-xs font-semibold border-2 rounded-xl text-center transition-all ${
+                          className={`w-36 py-2 px-2 text-xs font-semibold border-2 rounded-xl text-center transition-all cursor-pointer ${
                             preference.side === "right"
                               ? "border-primary bg-primary text-white shadow-md shadow-primary/20 scale-105"
                               : "border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
@@ -284,7 +284,7 @@ export default function AHPWeightCalculator({
           <button
             onClick={computeAHP}
             disabled={isSubmitting}
-            className="w-full max-w-sm mx-auto bg-white border-2 border-slate-800 text-slate-800 hover:bg-slate-800 hover:text-white font-bold py-3 px-6 rounded-xl transition-all uppercase tracking-wider text-sm shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full max-w-sm mx-auto bg-white border-2 border-slate-800 text-slate-800 hover:bg-slate-800 hover:text-white font-bold py-3 px-6 rounded-xl transition-all uppercase tracking-wider text-sm shadow-md disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
           >
             {isSubmitting ? "Menghitung..." : "Hitung Bobot"}
           </button>

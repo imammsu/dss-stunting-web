@@ -103,6 +103,34 @@ export const getPembobotanDetailFromDatabase = async (id) => {
   return result.rows;
 };
 
+export const findPembobotanByNama = async (nama) => {
+  const query = `
+    SELECT id FROM pembobotan_kriteria
+    WHERE LOWER(nama) = LOWER($1)
+    LIMIT 1
+  `;
+  const result = await pool.query(query, [nama]);
+  return result.rows[0] || null;
+};
+
+export const deletePembobotanFromDatabase = async (id) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM pairwise_comparison_kriteria WHERE id_pembobotan_kriteria = $1', [id]);
+    await client.query('DELETE FROM pembobotan_hasil WHERE id_pembobotan_kriteria = $1', [id]);
+    const result = await client.query('DELETE FROM pembobotan_kriteria WHERE id = $1 RETURNING id', [id]);
+    if (result.rowCount === 0) throw new Error("Data tidak ditemukan.");
+    await client.query('COMMIT');
+    return result.rows[0];
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 export const updatePembobotanInDatabase = async (id, { nama, cr, kriteriaList, pairwiseList }) => {
   const client = await pool.connect();
   try {

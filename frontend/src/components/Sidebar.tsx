@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useMemo, useState } from "react";
 import type { Village } from "../data/villages";
 import type { WeightFormat } from "../data/master";
@@ -18,6 +20,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { downloadCsvTemplate, uploadCsvForValidation } from "@/lib/csv";
 
 interface SidebarProps {
   isLoading: boolean;
@@ -62,6 +65,9 @@ export default function Sidebar({
   const [manualDraft, setManualDraft] = useState<Village>(() =>
     createDraftFromVillage(),
   );
+  const [csvErrors, setCsvErrors] = useState<string[]>([]);
+  const [csvLoading, setCsvLoading] = useState(false);
+  const [csvFileName, setCsvFileName] = useState("");
 
   useEffect(() => {
     if (!masterWeights.some((weight) => weight.id === selectedWeightId)) {
@@ -169,7 +175,7 @@ export default function Sidebar({
           </div>
           <button
             onClick={onToggle}
-            className="p-1 rounded-md hover:bg-slate-100 text-slate-500 transition-colors lg:hidden"
+            className="p-1 rounded-md hover:bg-slate-100 text-slate-500 transition-colors lg:hidden cursor-pointer"
           >
             <svg
               className="w-4 h-4"
@@ -241,7 +247,7 @@ export default function Sidebar({
               <button
                 type="button"
                 onClick={() => setInputType("manual")}
-                className={`flex-1 text-xs py-1.5 rounded-md transition-colors ${
+                className={`flex-1 text-xs py-1.5 rounded-md transition-colors cursor-pointer ${
                   inputType === "manual"
                     ? "bg-white shadow-sm font-medium text-slate-800"
                     : "text-slate-500 hover:text-slate-700"
@@ -252,7 +258,7 @@ export default function Sidebar({
               <button
                 type="button"
                 onClick={() => setInputType("upload")}
-                className={`flex-1 text-xs py-1.5 rounded-md transition-colors ${
+                className={`flex-1 text-xs py-1.5 rounded-md transition-colors cursor-pointer ${
                   inputType === "upload"
                     ? "bg-white shadow-sm font-medium text-slate-800"
                     : "text-slate-500 hover:text-slate-700"
@@ -265,25 +271,78 @@ export default function Sidebar({
             {inputType === "upload" ? (
               <div className="mb-3">
                 <button
-                  className="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-1.5 px-3 rounded-lg transition-colors text-xs shadow-sm flex justify-center items-center gap-1.5"
+                  className="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-1.5 px-3 rounded-lg transition-colors text-xs shadow-sm flex justify-center items-center gap-1.5 cursor-pointer"
                   type="button"
+                  onClick={async () => {
+                    try {
+                      await downloadCsvTemplate();
+                    } catch (error: any) {
+                      alert(error.message || "Gagal mengunduh template.");
+                    }
+                  }}
                 >
-                  Download Template File
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download Template CSV
                 </button>
                 <label className="block text-xs font-medium text-slate-700 mb-1.5 mt-3">
-                  Upload Data Excel
+                  Upload Data CSV
                 </label>
                 <div className="relative">
                   <input
                     type="file"
-                    accept=".xlsx,.xls,.csv"
+                    accept=".csv"
                     className="block w-full text-xs text-slate-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20 file:cursor-pointer file:transition-colors bg-slate-50 border border-slate-300 rounded-lg cursor-pointer"
-                    disabled={isLoading}
+                    disabled={isLoading || csvLoading}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setCsvErrors([]);
+                      setCsvFileName(file.name);
+                      setCsvLoading(true);
+                      try {
+                        const text = await file.text();
+                        const result = await uploadCsvForValidation(text);
+                        if (result.errors && result.errors.length > 0) {
+                          setCsvErrors(result.errors);
+                        } else {
+                          setManualVillages(result.villages);
+                          setCsvErrors([]);
+                          setCsvFileName("");
+                        }
+                      } catch (error: any) {
+                        setCsvErrors([error.message || "Gagal memvalidasi file CSV."]);
+                      } finally {
+                        setCsvLoading(false);
+                        // Reset file input
+                        e.target.value = "";
+                      }
+                    }}
                   />
                 </div>
+                {csvLoading && (
+                  <p className="mt-1.5 text-[10px] text-primary font-medium animate-pulse">
+                    Memvalidasi file CSV...
+                  </p>
+                )}
+                {csvErrors.length > 0 && (
+                  <div className="mt-2 bg-red-50 border border-red-200 rounded-lg p-2 max-h-[120px] overflow-y-auto">
+                    <p className="text-[10px] font-semibold text-red-700 mb-1">Validasi gagal:</p>
+                    <ul className="space-y-0.5">
+                      {csvErrors.map((err, i) => (
+                        <li key={i} className="text-[10px] text-red-600">• {err}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {!csvLoading && csvErrors.length === 0 && manualVillages.length > 0 && csvFileName === "" && (
+                  <p className="mt-1.5 text-[10px] text-green-600 font-medium">
+                    ✓ {manualVillages.length} data desa berhasil dimuat dari CSV.
+                  </p>
+                )}
                 <p className="mt-1 text-[10px] text-slate-400">
-                  Parser file belum ditambahkan. Untuk saat ini tombol analisis akan
-                  memakai data master yang sedang aktif.
+                  File CSV harus sesuai template. Semua desa harus terdaftar di Master Data.
                 </p>
               </div>
             ) : (
@@ -404,7 +463,7 @@ export default function Sidebar({
                   type="button"
                   onClick={handleAddData}
                   disabled={isLoading}
-                  className="w-full mt-3 bg-white border border-primary text-primary hover:bg-primary-50 font-medium py-1.5 px-3 rounded-lg transition-colors text-xs disabled:opacity-60 disabled:cursor-not-allowed text-center"
+                  className="w-full mt-3 bg-white border border-primary text-primary hover:bg-primary-50 font-medium py-1.5 px-3 rounded-lg transition-colors text-xs disabled:opacity-60 disabled:cursor-not-allowed text-center cursor-pointer"
                 >
                   + Tambah ke data analisis
                 </button>
@@ -428,7 +487,7 @@ export default function Sidebar({
                                 previous.filter((_, currentIndex) => currentIndex !== index),
                               )
                             }
-                            className="text-danger hover:text-red-700 transition-colors"
+                            className="text-danger hover:text-red-700 transition-colors cursor-pointer"
                           >
                             <svg
                               className="w-3.5 h-3.5"
@@ -454,7 +513,7 @@ export default function Sidebar({
 
             <button
               onClick={() => {
-                if (inputType === "manual") {
+                if (inputType === "manual" || (inputType === "upload" && manualVillages.length > 0)) {
                   onCalculate(manualVillages, selectedWeightId);
                   setManualVillages([]);
                 } else {
@@ -464,9 +523,9 @@ export default function Sidebar({
               disabled={
                 isLoading ||
                 !masterWeights.length ||
-                (inputType === "manual" && manualVillages.length < 2)
+                ((inputType === "manual" || inputType === "upload") && manualVillages.length < 2)
               }
-              className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-light text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 text-sm disabled:opacity-60 disabled:cursor-not-allowed shadow-sm hover:shadow-md active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-light text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 text-sm disabled:opacity-60 disabled:cursor-not-allowed shadow-sm hover:shadow-md active:scale-[0.98] cursor-pointer"
             >
               {isLoading ? (
                 <>

@@ -90,3 +90,16 @@ export const updatePembobotanApi = async (id: number, payload: {
   });
 };
 
+export const deleteAlternativeDesa = async (id: number) => {
+  return requestJson<{ message: string }>(`/master/alternatifDesa/${id}`, {
+    auth: true,
+    method: "DELETE",
+  });
+};
+
+export const deletePembobotanApi = async (id: number) => {
+  return requestJson<{ message: string }>(`/master/pembobotan/${id}`, {
+    auth: true,
+    method: "DELETE",
+  });
+};

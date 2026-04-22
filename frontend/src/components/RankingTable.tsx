@@ -1,15 +1,28 @@
-import { useEffect, useRef } from "react";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { useEffect, useRef, useState } from "react";
 import type { Village } from "../data/villages";
 import { getStatusColor, getStatusLabel } from "../data/villages";
+type RankedVillage = Village & { vScore: number; ranking: number };
 
 interface RankingTableProps {
-  villages: Village[];
+  villages: RankedVillage[];
   selectedVillage: Village | null;
   onVillageSelect: (village: Village) => void;
   isCalculated: boolean;
   historyOptions?: { id: string; label: string }[];
   selectedHistoryId?: string;
   onHistorySelect?: (id: string) => void;
+  onDeleteHistory?: (id: string) => void;
   isLoadingHistory?: boolean;
 }
 
@@ -21,9 +34,11 @@ export default function RankingTable({
   historyOptions,
   selectedHistoryId,
   onHistorySelect,
+  onDeleteHistory,
   isLoadingHistory = false,
 }: RankingTableProps) {
   const rowRefs = useRef<Map<string | number, HTMLTableRowElement>>(new Map());
+  const [deleteHistoryOpen, setDeleteHistoryOpen] = useState(false);
 
   const sangatPrioritas = villages.filter((village) => village.vScore > 0.7).length;
   const prioritasSedang = villages.filter(
@@ -115,27 +130,42 @@ export default function RankingTable({
         </div>
 
         {historyOptions && historyOptions.length > 0 && (
-          <div className="relative">
-            <select
-              className="w-full appearance-none bg-white border border-slate-300 text-slate-700 text-xs py-2 pl-3 pr-8 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-sm font-medium transition-colors hover:border-slate-400"
-              value={selectedHistoryId}
-              onChange={(event) => {onHistorySelect?.(event.target.value); console.log(event.target.value)}}
-            >
-              {historyOptions.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-600">
-              <svg className="w-4 h-4 font-bold" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <select
+                className="w-full appearance-none bg-white border border-slate-300 text-slate-700 text-xs py-2 pl-3 pr-8 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-sm font-medium transition-colors hover:border-slate-400 cursor-pointer"
+                value={selectedHistoryId}
+                onChange={(event) => {onHistorySelect?.(event.target.value); console.log(event.target.value)}}
+              >
+                {historyOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-600">
+                <svg className="w-4 h-4 font-bold" viewBox="0 0 20 20" fill="currentColor">
+                  <path
+                    fillRule="evenodd"
+                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
             </div>
+              <button
+                onClick={() => setDeleteHistoryOpen(true)}
+                className="p-2 rounded-md border border-red-200 bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-700 transition-colors flex-shrink-0 cursor-pointer"
+                title="Hapus riwayat ini"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path
+                    fillRule="evenodd"
+                    d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
           </div>
         )}
       </div>
@@ -224,6 +254,25 @@ export default function RankingTable({
           </tbody>
         </table>
       </div>
+       <AlertDialog open={deleteHistoryOpen} onOpenChange={setDeleteHistoryOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Riwayat</AlertDialogTitle>
+            <AlertDialogDescription>
+              Riwayat perankingan ini akan dihapus permanen.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { onDeleteHistory?.(selectedHistoryId!); setDeleteHistoryOpen(false); }}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

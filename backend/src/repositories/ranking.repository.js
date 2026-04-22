@@ -138,3 +138,43 @@ export const getRiwayatDetailFromDatabase = async (id) => {
 
   return { ...headerResult.rows[0], villages };
 };
+
+/**
+ * Menghapus satu sesi riwayat beserta seluruh data terkait.
+ */
+export const deleteRiwayatFromDatabase = async (id) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // 1. Hapus ranking_alternatif yang merujuk ke ranking_hasil dari riwayat ini
+    await client.query(
+      `DELETE FROM ranking_alternatif
+       WHERE id_ranking_hasil IN (
+         SELECT id FROM ranking_hasil WHERE id_riwayat_ranking = $1
+       )`,
+      [id]
+    );
+
+    // 2. Hapus ranking_hasil
+    await client.query(
+      "DELETE FROM ranking_hasil WHERE id_riwayat_ranking = $1",
+      [id]
+    );
+
+    // 3. Hapus riwayat_ranking
+    const result = await client.query(
+      "DELETE FROM riwayat_ranking WHERE id = $1 RETURNING id",
+      [id]
+    );
+    if (result.rowCount === 0) throw new Error("Riwayat tidak ditemukan.");
+
+    await client.query("COMMIT");
+    return result.rows[0];
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+};

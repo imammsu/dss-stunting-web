@@ -13,6 +13,8 @@ import {
   createPembobotan,
   getPembobotanDetail,
   updatePembobotan,
+  deleteAlternativeDesaService,
+  deletePembobotanService,
 } from "../services/master.service.js";
 
 export const listCriteria = asyncHandler(async (_req, res) => {
@@ -65,7 +67,8 @@ export const buatDesa = asyncHandler (async(_req, res) => {
       data: result,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    const status = error.statusCode || 500;
+    res.status(status).json({ success: false, message: error.message });
   }
 });
 
@@ -88,7 +91,8 @@ export const buatPembobotan = asyncHandler(async (_req, res) => {
       data: result,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    const status = error.statusCode || 500;
+    res.status(status).json({ success: false, message: error.message });
   }
 });
 
@@ -107,6 +111,26 @@ export const ubahPembobotan = asyncHandler(async (_req, res) => {
     const { id } = _req.params;
     const result = await updatePembobotan(id, _req.body);
     res.status(200).json({ success: true, message: "Data berhasil diupdate.", data: result });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+export const hapusDesa = asyncHandler(async (_req, res) => {
+  try {
+    const { id } = _req.params;
+    await deleteAlternativeDesaService(id);
+    res.status(200).json({ success: true, message: "Data desa berhasil dihapus." });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+export const hapusPembobotan = asyncHandler(async (_req, res) => {
+  try {
+    const { id } = _req.params;
+    await deletePembobotanService(id);
+    res.status(200).json({ success: true, message: "Data pembobotan berhasil dihapus." });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

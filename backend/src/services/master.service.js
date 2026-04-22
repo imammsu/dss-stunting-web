@@ -2,9 +2,9 @@
  * Service master data.
  * Silakan sesuaikan mapping output bila frontend Anda ingin bentuk data yang berbeda.
  */
-import { listAlternativesFromDatabase, insertAlternatifDesa, insertAlternatifDesaDefaultNilai, updateAlternatifDesa, updateAlternatifDesaDefaultNilai } from "../repositories/alternative.repository.js";
+import { listAlternativesFromDatabase, insertAlternatifDesa, insertAlternatifDesaDefaultNilai, updateAlternatifDesa, updateAlternatifDesaDefaultNilai, findAlternatifDesaByNama, deleteAlternatifDesaFromDatabase } from "../repositories/alternative.repository.js";
 import { listCriteriaFromDatabase } from "../repositories/criteria.repository.js";
-import { listPembobotanFromDatabase, insertPembobotanFromDatabase, getPembobotanDetailFromDatabase, updatePembobotanInDatabase } from "../repositories/pembobotan.repository.js";
+import { listPembobotanFromDatabase, insertPembobotanFromDatabase, getPembobotanDetailFromDatabase, updatePembobotanInDatabase, findPembobotanByNama, deletePembobotanFromDatabase } from "../repositories/pembobotan.repository.js";
 
 export const getTopsisReadyCriteria = async () => {
   const rows = await listCriteriaFromDatabase();
@@ -39,7 +39,14 @@ export const getMasterBootstrap = async () => {
 };
 
 export const createAlternativeDesa = async ({ name, district, lat, lng, values }) => {
-  
+  // Cek duplikat berdasarkan nama desa + kecamatan
+  const existing = await findAlternatifDesaByNama(name, district);
+  if (existing) {
+    const error = new Error(`Data desa '${name}' di kecamatan '${district}' sudah ada. Silakan masukkan data lain.`);
+    error.statusCode = 409;
+    throw error;
+  }
+
   const village = await insertAlternatifDesa({ name, kecamatan: district, lat, lng });
 
   const nilaiRows = Object.entries(values).map(([key, value]) => ({
@@ -71,6 +78,14 @@ export const updateAlternativeDesa = async (id, { name, district, lat, lng, valu
 };
 
 export const createPembobotan = async ({ nama, cr, bobotHasil, preferences }) => {
+  // Cek duplikat berdasarkan nama pembobotan
+  const existing = await findPembobotanByNama(nama);
+  if (existing) {
+    const error = new Error(`Data pembobotan dengan nama '${nama}' sudah ada. Silakan masukkan nama lain.`);
+    error.statusCode = 409;
+    throw error;
+  }
+
   const criteriaRows = await getTopsisReadyCriteria();
   
   const kriteriaList = [];
@@ -140,4 +155,12 @@ export const updatePembobotan = async (id, { nama, cr, bobotHasil, preferences }
 
   const result = await updatePembobotanInDatabase(id, { nama, cr, kriteriaList, pairwiseList });
   return result;
+};
+
+export const deleteAlternativeDesaService = async (id) => {
+  return await deleteAlternatifDesaFromDatabase(id);
+};
+
+export const deletePembobotanService = async (id) => {
+  return await deletePembobotanFromDatabase(id);
 };

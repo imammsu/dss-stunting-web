@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Wrapper endpoint AHP dan TOPSIS frontend.
  */
@@ -100,8 +101,9 @@ export const rankVillagesWithTopsis = async (
       criteria.map((criterion) => {
         // Mendukung data statis (properti langsung) maupun data DB (dalam village.values[id_kriteria])
         const dbId = criterion.raw?.id as string | number | undefined;
+        const villageAsRecord = village as unknown as Record<string, unknown>;
         const val =
-          (village[criterion.id] as number | undefined) ??
+          (villageAsRecord[criterion.id] as number | undefined) ??
           (dbId ? village.values?.[dbId] : undefined) ??
           village.values?.[criterion.id] ??
           0;
@@ -165,3 +167,10 @@ export const rankVillagesWithTopsis = async (
     dbId: response.id_riwayat_ranking,
   };
 };
+
+/** Hapus satu sesi riwayat dari database. */
+export const deleteRiwayatApi = (id: number) =>
+  requestJson<{ message: string }>(`/decision/riwayat/${id}`, {
+    auth: true,
+    method: "DELETE",
+  });

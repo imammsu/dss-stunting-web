@@ -6,7 +6,7 @@ import { getMasterBootstrap } from "./master.service.js";
 import { ApiError } from "../utils/apiError.js";
 import { calculateAHP } from "./decision/ahp.service.js";
 import { rankWithTopsis } from "./decision/topsis.service.js";
-import { listRiwayatFromDatabase, getRiwayatDetailFromDatabase } from "../repositories/ranking.repository.js";
+import { listRiwayatFromDatabase, getRiwayatDetailFromDatabase, deleteRiwayatFromDatabase } from "../repositories/ranking.repository.js";
 
 export const evaluateDecision = ({ criteria, comparisons, alternatives, maxCr }) => {
   const ahpResult = calculateAHP({
@@ -93,4 +93,9 @@ export const getRiwayatDetail = async (id) => {
   const result = await getRiwayatDetailFromDatabase(id);
   if (!result) throw new ApiError(404, "Sesi riwayat tidak ditemukan.");
   return result;
+};
+
+/** Hapus satu sesi riwayat beserta seluruh data terkait. */
+export const deleteRiwayat = async (id) => {
+  return await deleteRiwayatFromDatabase(id);
 };

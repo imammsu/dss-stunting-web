@@ -1,3 +1,15 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import type { Village } from "../data/villages";
 import type { WeightFormat } from "../data/master";
@@ -28,7 +40,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { submitAlternativeDesa, updateAlternativeDesa, submitPembobotan, fetchPembobotan, fetchPembobotanDetail, updatePembobotanApi } from "@/lib/master";
+import { submitAlternativeDesa, updateAlternativeDesa, submitPembobotan, fetchPembobotan, fetchPembobotanDetail, updatePembobotanApi, deleteAlternativeDesa, deletePembobotanApi } from "@/lib/master";
 
 interface MasterDataModalProps {
   villages: Village[];
@@ -49,6 +61,11 @@ export default function MasterDataModal({
   setPembobotan,
   onClose,
 }: MasterDataModalProps) {
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    type: "village" | "weight";
+    id: number | null;
+  }>({ open: false, type: "village", id: null });
   const [activeTab, setActiveTab] = useState<"desa" | "pembobotan">("desa");
   const [searchTerm, setSearchTerm] = useState("");
   const [editingVillage, setEditingVillage] = useState<Village | null>(null);
@@ -67,9 +84,11 @@ export default function MasterDataModal({
   }, [searchTerm, villages]);
 
   const handleDeleteVillage = (id: Village["id"]) => {
-    setVillages((previous) =>
-      previous.filter((village) => String(village.id) !== String(id)),
-    );
+    setDeleteDialog({ open: true, type: "village", id: Number(id) });
+  };
+
+  const handleDeleteWeight = (id: number) => {
+    setDeleteDialog({ open: true, type: "weight", id });
   };
 
   const openAddVillage = () => {
@@ -114,9 +133,9 @@ export default function MasterDataModal({
       });
 
       setIsVillageModalOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Gagal menyimpan data:", error);
-      alert("Gagal menyimpan data. Coba lagi.");
+      alert(error.message || "Gagal menyimpan data. Coba lagi.");
     }
   };
 
@@ -194,6 +213,26 @@ export default function MasterDataModal({
     }
   };
 
+  const handleConfirmDelete = async () => {
+    if (deleteDialog.id === null) return;
+    try {
+      if (deleteDialog.type === "village") {
+        await deleteAlternativeDesa(deleteDialog.id);
+        setVillages((prev) => prev.filter((v) => v.id !== deleteDialog.id));
+      } else {
+        await deletePembobotanApi(deleteDialog.id);
+        const updated = await fetchPembobotan();
+        setPembobotan(updated);
+      }
+    } catch (error: any) {
+      // ganti alert dengan toast jika ada, atau biarkan error
+      console.error(error.message);
+    } finally {
+      setDeleteDialog({ open: false, type: "village", id: null });
+    }
+  };
+
+
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[30] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -206,7 +245,7 @@ export default function MasterDataModal({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
           >
             <svg
               className="w-5 h-5"
@@ -226,7 +265,7 @@ export default function MasterDataModal({
 
         <div className="flex px-6 border-b border-slate-200 bg-slate-50">
           <button
-            className={`py-3 px-4 text-sm font-semibold border-b-2 transition-colors ${
+            className={`py-3 px-4 text-sm font-semibold border-b-2 transition-colors cursor-pointer ${
               activeTab === "desa"
                 ? "border-primary text-primary"
                 : "border-transparent text-slate-500 hover:text-slate-700"
@@ -236,7 +275,7 @@ export default function MasterDataModal({
             Desa (Alternatif)
           </button>
           <button
-            className={`py-3 px-4 text-sm font-semibold border-b-2 transition-colors ${
+            className={`py-3 px-4 text-sm font-semibold border-b-2 transition-colors cursor-pointer ${
               activeTab === "pembobotan"
                 ? "border-primary text-primary"
                 : "border-transparent text-slate-500 hover:text-slate-700"
@@ -253,7 +292,7 @@ export default function MasterDataModal({
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <button
                   onClick={openAddVillage}
-                  className="bg-white border border-slate-600 text-slate-700 hover:bg-slate-50 text-sm font-medium py-1.5 px-4 rounded-lg shadow-sm transition-all"
+                  className="bg-white border border-slate-600 text-slate-700 hover:bg-slate-50 text-sm font-medium py-1.5 px-4 rounded-lg shadow-sm transition-all cursor-pointer"
                 >
                   Tambah alternatif desa baru
                 </button>
@@ -311,7 +350,7 @@ export default function MasterDataModal({
                           <TableCell className="text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="size-8">
+                                <Button variant="ghost" size="icon" className="size-8 cursor-pointer">
                                   <MoreHorizontalIcon />
                                   <span className="sr-only">Open menu</span>
                                 </Button>
@@ -349,7 +388,7 @@ export default function MasterDataModal({
               <div className="flex justify-between items-center mb-4">
                 <button
                   onClick={handleAddWeight}
-                  className="bg-white border border-slate-600 text-slate-700 hover:bg-slate-50 text-sm font-medium py-1.5 px-4 rounded-lg shadow-sm transition-all"
+                  className="bg-white border border-slate-600 text-slate-700 hover:bg-slate-50 text-sm font-medium py-1.5 px-4 rounded-lg shadow-sm transition-all cursor-pointer"
                 >
                   Tambah format pembobotan baru
                 </button>
@@ -387,7 +426,7 @@ export default function MasterDataModal({
                           <TableCell className="text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="size-8">
+                                <Button variant="ghost" size="icon" className="size-8 cursor-pointer">
                                   <MoreHorizontalIcon />
                                   <span className="sr-only">Open menu</span>
                                 </Button>
@@ -510,7 +549,7 @@ export default function MasterDataModal({
         <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-[32] flex items-center justify-center p-4 rounded-2xl">
           <div className="bg-white rounded-xl shadow-lg w-full max-w-lg p-6 animate-in fade-in zoom-in-95 max-h-[90vh] flex flex-col">
             <h3 className="border-b pb-4 text-sm font-bold text-slate-800 mb-4 flex-shrink-0">
-              {editingVillage.id === -1 ? "Edit Desa" : "Tambah Desa"}
+              {editingVillage.id === -1 ? "Tambah Desa" : "Edit Desa"}
             </h3>
             <form onSubmit={(e) => {e.preventDefault(); saveVillage()}} className="flex flex-col flex-1 overflow-hidden">
               <div className="space-y-4 overflow-y-auto flex-1 pr-1">
@@ -632,13 +671,13 @@ export default function MasterDataModal({
                 <button
                   type="button"
                   onClick={() => setIsVillageModalOpen(false)}
-                  className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors border border-transparent hover:border-slate-200"
+                  className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors border border-transparent hover:border-slate-200 cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-bold text-white bg-primary hover:bg-primary-dark rounded-lg transition-colors shadow-sm"
+                  className="px-4 py-2 text-xs font-bold text-white bg-primary hover:bg-primary-dark rounded-lg transition-colors shadow-sm cursor-pointer"
                 >
                   Simpan Data
                 </button>
@@ -685,7 +724,7 @@ export default function MasterDataModal({
               }
               
               const payload: WeightFormat = {
-                id: newId,
+                id: newId!,
                 name,
                 weights: weightsResult,
                 ahpPreferences: preferences,
@@ -725,6 +764,29 @@ export default function MasterDataModal({
           onCancel={() => setAhpState({ isOpen: false, format: null })}
         />
       )}
+
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog((prev) => ({ ...prev, open }))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteDialog.type === "village"
+                ? "Data desa ini akan dihapus permanen dan tidak bisa dikembalikan."
+                : "Data pembobotan ini akan dihapus permanen dan tidak bisa dikembalikan."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }

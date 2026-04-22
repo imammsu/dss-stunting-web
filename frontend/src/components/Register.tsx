@@ -108,7 +108,7 @@ export default function Register({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3 px-4 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl shadow-lg shadow-primary/30 transition-all hover:-translate-y-0.5 active:translate-y-0 mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full py-3 px-4 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl shadow-lg shadow-primary/30 transition-all hover:-translate-y-0.5 active:translate-y-0 mt-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
           >
             {isSubmitting ? "Memproses..." : "Daftar Akun"}
           </button>
@@ -119,7 +119,7 @@ export default function Register({
             Sudah punya akun?{" "}
             <button
               onClick={onNavigateToLogin}
-              className="text-slate-800 font-bold hover:underline"
+              className="text-slate-800 font-bold hover:underline cursor-pointer"
             >
               Masuk di sini
             </button>

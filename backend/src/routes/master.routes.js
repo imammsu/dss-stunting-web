@@ -13,6 +13,8 @@ import {
   buatPembobotan,
   detailPembobotan,
   ubahPembobotan,
+  hapusDesa,
+  hapusPembobotan,
 } from "../controllers/master.controller.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 
@@ -28,5 +30,7 @@ router.put("/alternatifDesa/:id", updateDesa);
 router.post("/pembobotan", buatPembobotan);
 router.get("/pembobotan/:id", detailPembobotan);
 router.put("/pembobotan/:id", ubahPembobotan);
+router.delete("/alternatifDesa/:id", hapusDesa);
+router.delete("/pembobotan/:id", hapusPembobotan);
 
 export default router;

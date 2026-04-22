@@ -7,6 +7,7 @@ import authRoutes from "./auth.routes.js";
 import decisionRoutes from "./decision.routes.js";
 import healthRoutes from "./health.routes.js";
 import masterRoutes from "./master.routes.js";
+import csvRoutes from "./csv.routes.js";
 
 const router = Router();
 
@@ -14,5 +15,6 @@ router.use("/health", healthRoutes);
 router.use("/auth", authRoutes);
 router.use("/master", masterRoutes);
 router.use("/decision", decisionRoutes);
+router.use("/csv", csvRoutes);
 
 export default router;

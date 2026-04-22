@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Login from "./components/Login";
 import MapView from "./components/MapView";
@@ -18,7 +19,7 @@ import {
   logoutFromApp,
   registerWithPassword,
 } from "./lib/auth";
-import { rankVillagesWithTopsis, fetchRiwayatList, fetchRiwayatDetail, type RiwayatListItem } from "./lib/decision";
+import { rankVillagesWithTopsis, fetchRiwayatList, fetchRiwayatDetail, deleteRiwayatApi, type RiwayatListItem } from "./lib/decision";
 import {
   fetchBootstrapData,
   fetchPembobotan,
@@ -318,6 +319,30 @@ export default function App() {
     }
   }, [history, pushNotice]);
 
+  const handleDeleteRiwayat = useCallback(async (id: string) => {
+    try {
+      await deleteRiwayatApi(Number(id));
+      // Hapus dari riwayatList
+      setRiwayatList((prev) => prev.filter((r) => String(r.id) !== id));
+      // Hapus dari history cache
+      setHistory((prev) => prev.filter((h) => h.id !== id));
+      // Pilih riwayat lain jika yang dihapus sedang dipilih
+      if (selectedHistoryId === id) {
+        const remaining = riwayatList.filter((r) => String(r.id) !== id);
+        if (remaining.length > 0) {
+          setSelectedHistoryId(String(remaining[0].id));
+        } else {
+          setSelectedHistoryId("");
+          setIsCalculated(false);
+        }
+      }
+      pushNotice("Riwayat berhasil dihapus.", "success");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Gagal menghapus riwayat.";
+      pushNotice(message, "error");
+    }
+  }, [riwayatList, selectedHistoryId, pushNotice]);
+
   const handleLogin = useCallback(
     async (email: string, password: string) => {
       const session = await loginWithPassword(email, password);
@@ -377,6 +402,13 @@ export default function App() {
     );
   }
 
+  const rankedVillages = villages.map(v => ({
+    ...v,
+    vScore: v.vScore ?? 0,
+    ranking: v.ranking ?? 0,
+  }));
+
+
   return (
     <div className="flex h-screen bg-slate-50 text-slate-900 font-sans overflow-hidden">
       {sidebarOpen && (
@@ -401,7 +433,7 @@ export default function App() {
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => setSidebarOpen((value) => !value)}
-              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
               title={sidebarOpen ? "Tutup Sidebar" : "Buka Sidebar"}
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -426,7 +458,7 @@ export default function App() {
             </div>
             <button
               onClick={() => setMasterModalOpen(true)}
-              className="text-[11px] font-bold px-3 py-1.5 bg-primary text-white hover:bg-primary-light rounded-lg transition-colors shadow-sm flex items-center gap-1"
+              className="text-[11px] font-bold px-3 py-1.5 bg-primary text-white hover:bg-primary-light rounded-lg transition-colors shadow-sm flex items-center gap-1 cursor-pointer"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -435,7 +467,7 @@ export default function App() {
             </button>
             <button
               onClick={handleLogout}
-              className="text-[11px] font-bold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors"
+              className="text-[11px] font-bold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors cursor-pointer"
             >
               Logout
             </button>
@@ -469,13 +501,14 @@ export default function App() {
 
           <div className="lg:w-[440px] xl:w-[500px] flex-shrink-0 min-h-[200px] lg:min-h-0 overflow-hidden">
             <RankingTable
-              villages={villages}
+              villages={rankedVillages}
               selectedVillage={selectedVillage}
               onVillageSelect={handleVillageSelect}
               isCalculated={isCalculated}
               historyOptions={riwayatList.map((r) => ({ id: String(r.id), label: r.nama_sesi }))}
               selectedHistoryId={selectedHistoryId}
               onHistorySelect={handleHistorySelect}
+              onDeleteHistory={handleDeleteRiwayat}
               isLoadingHistory={isLoadingHistory}
             />
           </div>

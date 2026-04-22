@@ -105,7 +105,7 @@ export default function Login({ onLogin, onNavigateToRegister }: LoginProps) {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl shadow-lg shadow-slate-800/20 transition-all hover:-translate-y-0.5 active:translate-y-0 mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl shadow-lg shadow-slate-800/20 transition-all hover:-translate-y-0.5 active:translate-y-0 mt-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
           >
             {isSubmitting ? "Memproses..." : "Masuk"}
           </button>
@@ -116,7 +116,7 @@ export default function Login({ onLogin, onNavigateToRegister }: LoginProps) {
             Belum punya akun?{" "}
             <button
               onClick={onNavigateToRegister}
-              className="text-primary font-bold hover:underline"
+              className="text-primary font-bold hover:underline cursor-pointer"
             >
               Daftar sekarang
             </button>

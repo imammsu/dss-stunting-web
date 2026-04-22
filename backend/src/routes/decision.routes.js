@@ -9,6 +9,7 @@ import {
   topsisRank,
   listRiwayat,
   detailRiwayat,
+  hapusRiwayat,
 } from "../controllers/decision.controller.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 
@@ -21,5 +22,6 @@ router.post("/evaluate", evaluate);
 router.post("/rank-from-database", rankFromDatabase);
 router.get("/riwayat", listRiwayat);
 router.get("/riwayat/:id", detailRiwayat);
+router.delete("/riwayat/:id", hapusRiwayat);
 
 export default router;

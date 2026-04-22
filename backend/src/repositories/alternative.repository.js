@@ -73,6 +73,35 @@ export const updateAlternatifDesa = async (id, { name, kecamatan, lat, lng }) =>
   return result.rows[0];
 };
 
+export const findAlternatifDesaByNama = async (nama, kecamatan) => {
+  const query = `
+    SELECT id FROM alternatif_desa
+    WHERE LOWER(nama) = LOWER($1) AND LOWER(kecamatan) = LOWER($2)
+    LIMIT 1
+  `;
+  const result = await pool.query(query, [nama, kecamatan]);
+  return result.rows[0] || null;
+};
+
+export const deleteAlternatifDesaFromDatabase = async (id) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    // Hapus nilai default dulu (FK)
+    await client.query('DELETE FROM default_nilai_alternatif WHERE id_alternatif_desa = $1', [id]);
+    // Hapus desa
+    const result = await client.query('DELETE FROM alternatif_desa WHERE id = $1 RETURNING id', [id]);
+    if (result.rowCount === 0) throw new Error("Data tidak ditemukan.");
+    await client.query('COMMIT');
+    return result.rows[0];
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 export const updateAlternatifDesaDefaultNilai = async (id, nilaiRows) => {
   // Hapus nilai lama dulu, lalu insert yang baru
   await pool.query(

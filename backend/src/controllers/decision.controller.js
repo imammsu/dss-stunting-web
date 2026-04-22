@@ -9,6 +9,7 @@ import {
   rankDecisionFromDatabase,
   getRiwayatList,
   getRiwayatDetail,
+  deleteRiwayat,
 } from "../services/decision.service.js";
 import { calculateAHP } from "../services/decision/ahp.service.js";
 import { rankWithTopsis, saveTopsisRanking } from "../services/decision/topsis.service.js";
@@ -73,4 +74,13 @@ export const listRiwayat = asyncHandler(async (_req, res) => {
 export const detailRiwayat = asyncHandler(async (req, res) => {
   const result = await getRiwayatDetail(Number(req.params.id));
   res.json({ success: true, message: "Detail riwayat berhasil diambil.", data: result });
+});
+
+export const hapusRiwayat = asyncHandler(async (req, res) => {
+  try {
+    await deleteRiwayat(Number(req.params.id));
+    res.status(200).json({ success: true, message: "Riwayat berhasil dihapus." });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
