@@ -87,11 +87,55 @@ export const deleteAlternatifDesaFromDatabase = async (id) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    // Hapus nilai default dulu (FK)
+
+    // 1. Cari semua riwayat_ranking yang memiliki ranking_hasil untuk desa ini
+    const riwayatIds = await client.query(
+      `SELECT DISTINCT id_riwayat_ranking FROM ranking_hasil WHERE id_alternatif_desa = $1`,
+      [id]
+    );
+
+    // 2. Untuk tiap riwayat, cek berapa alternatif yang tersisa setelah desa ini dihapus
+    for (const row of riwayatIds.rows) {
+      const idRiwayat = row.id_riwayat_ranking;
+
+      const countResult = await client.query(
+        `SELECT COUNT(*) AS total FROM ranking_hasil WHERE id_riwayat_ranking = $1 AND id_alternatif_desa != $2`,
+        [idRiwayat, id]
+      );
+      const sisaAlternatif = parseInt(countResult.rows[0].total, 10);
+
+      if (sisaAlternatif < 2) {
+        // Riwayat akan punya <2 alternatif → hapus seluruh riwayat
+        await client.query(
+          `DELETE FROM ranking_alternatif WHERE id_ranking_hasil IN (
+             SELECT id FROM ranking_hasil WHERE id_riwayat_ranking = $1
+           )`,
+          [idRiwayat]
+        );
+        await client.query('DELETE FROM ranking_hasil WHERE id_riwayat_ranking = $1', [idRiwayat]);
+        await client.query('DELETE FROM riwayat_ranking WHERE id = $1', [idRiwayat]);
+      } else {
+        // Riwayat masih punya ≥2 alternatif → hapus hanya data desa ini dari riwayat
+        await client.query(
+          `DELETE FROM ranking_alternatif WHERE id_ranking_hasil IN (
+             SELECT id FROM ranking_hasil WHERE id_riwayat_ranking = $1 AND id_alternatif_desa = $2
+           )`,
+          [idRiwayat, id]
+        );
+        await client.query(
+          'DELETE FROM ranking_hasil WHERE id_riwayat_ranking = $1 AND id_alternatif_desa = $2',
+          [idRiwayat, id]
+        );
+      }
+    }
+
+    // 3. Hapus nilai default (FK)
     await client.query('DELETE FROM default_nilai_alternatif WHERE id_alternatif_desa = $1', [id]);
-    // Hapus desa
+
+    // 4. Hapus desa itu sendiri
     const result = await client.query('DELETE FROM alternatif_desa WHERE id = $1 RETURNING id', [id]);
     if (result.rowCount === 0) throw new Error("Data tidak ditemukan.");
+
     await client.query('COMMIT');
     return result.rows[0];
   } catch (error) {

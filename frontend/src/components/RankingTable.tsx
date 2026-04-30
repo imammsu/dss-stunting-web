@@ -24,6 +24,7 @@ interface RankingTableProps {
   onHistorySelect?: (id: string) => void;
   onDeleteHistory?: (id: string) => void;
   isLoadingHistory?: boolean;
+  isDeletingHistory?: boolean;
 }
 
 export default function RankingTable({
@@ -36,6 +37,7 @@ export default function RankingTable({
   onHistorySelect,
   onDeleteHistory,
   isLoadingHistory = false,
+  isDeletingHistory = false,
 }: RankingTableProps) {
   const rowRefs = useRef<Map<string | number, HTMLTableRowElement>>(new Map());
   const [deleteHistoryOpen, setDeleteHistoryOpen] = useState(false);
@@ -155,16 +157,24 @@ export default function RankingTable({
             </div>
               <button
                 onClick={() => setDeleteHistoryOpen(true)}
-                className="p-2 rounded-md border border-red-200 bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-700 transition-colors flex-shrink-0 cursor-pointer"
+                disabled={isDeletingHistory}
+                className="p-2 rounded-md border border-red-200 bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-700 transition-colors flex-shrink-0 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 title="Hapus riwayat ini"
               >
-                <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path
-                    fillRule="evenodd"
-                    d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                {isDeletingHistory ? (
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path
+                      fillRule="evenodd"
+                      d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                )}
               </button>
           </div>
         )}
@@ -263,12 +273,21 @@ export default function RankingTable({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeletingHistory}>Batal</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => { onDeleteHistory?.(selectedHistoryId!); setDeleteHistoryOpen(false); }}
-              className="bg-destructive text-white hover:bg-destructive/90"
+              className="bg-destructive text-white hover:bg-destructive/90 disabled:opacity-60"
+              disabled={isDeletingHistory}
             >
-              Hapus
+              {isDeletingHistory ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Menghapus...
+                </span>
+              ) : "Hapus"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -99,6 +99,8 @@ export default function App() {
   const [riwayatList, setRiwayatList] = useState<RiwayatListItem[]>([]);
   /** true saat sedang fetch detail sesi lama dari DB */
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  /** true saat proses delete riwayat sedang berjalan */
+  const [isDeletingRiwayat, setIsDeletingRiwayat] = useState(false);
 
   const pushNotice = useCallback((message: string, type: AppNotice["type"] = "info") => {
     setNotice({ message, type });
@@ -319,19 +321,81 @@ export default function App() {
     }
   }, [history, pushNotice]);
 
+  /** Refresh seluruh data riwayat dari DB — dipanggil setelah cascade delete.
+   *  Cache lama dibuang agar data desa yang sudah terhapus tidak muncul lagi. */
+  const refreshRiwayat = useCallback(async () => {
+    try {
+      const riwayat = await fetchRiwayatList();
+      setRiwayatList(riwayat);
+
+      // Buang seluruh cache lama — data mungkin sudah stale akibat cascade delete
+      // dan re-fetch detail untuk riwayat yang sedang aktif ditampilkan.
+
+      if (riwayat.length === 0) {
+        setHistory([]);
+        setSelectedHistoryId("");
+        setIsCalculated(false);
+        return;
+      }
+
+      // Tentukan riwayat mana yang harus ditampilkan
+      const stillExists = riwayat.some((r) => String(r.id) === selectedHistoryId);
+      const targetItem = stillExists
+        ? riwayat.find((r) => String(r.id) === selectedHistoryId)!
+        : riwayat[0];
+      const targetId = String(targetItem.id);
+
+      // Re-fetch detail dari DB agar data real-time (tanpa desa yang sudah dihapus)
+      try {
+        const detail = await fetchRiwayatDetail(targetItem.id);
+        const record: HistoryRecord = {
+          id: targetId,
+          label: targetItem.nama_sesi,
+          results: detail.villages,
+        };
+        setHistory([record]);
+        setSelectedHistoryId(targetId);
+        setIsCalculated(true);
+      } catch {
+        // Gagal fetch detail — kosongkan tampilan
+        setHistory([]);
+        setSelectedHistoryId("");
+        setIsCalculated(false);
+      }
+    } catch {
+      // Gagal refresh — biarkan data lama
+    }
+  }, [selectedHistoryId]);
+
   const handleDeleteRiwayat = useCallback(async (id: string) => {
+    setIsDeletingRiwayat(true);
     try {
       await deleteRiwayatApi(Number(id));
       // Hapus dari riwayatList
-      setRiwayatList((prev) => prev.filter((r) => String(r.id) !== id));
+      const remaining = riwayatList.filter((r) => String(r.id) !== id);
+      setRiwayatList(remaining);
       // Hapus dari history cache
       setHistory((prev) => prev.filter((h) => h.id !== id));
+
       // Pilih riwayat lain jika yang dihapus sedang dipilih
       if (selectedHistoryId === id) {
-        const remaining = riwayatList.filter((r) => String(r.id) !== id);
         if (remaining.length > 0) {
-          setSelectedHistoryId(String(remaining[0].id));
+          const nextId = String(remaining[0].id);
+          setSelectedHistoryId(nextId);
+          // Fetch detail dari DB agar data real-time
+          try {
+            const detail = await fetchRiwayatDetail(remaining[0].id);
+            const record: HistoryRecord = {
+              id: nextId,
+              label: remaining[0].nama_sesi,
+              results: detail.villages,
+            };
+            setHistory([record]);
+          } catch {
+            // Gagal fetch — biarkan cache yang ada
+          }
         } else {
+          setHistory([]);
           setSelectedHistoryId("");
           setIsCalculated(false);
         }
@@ -340,6 +404,8 @@ export default function App() {
     } catch (error) {
       const message = error instanceof Error ? error.message : "Gagal menghapus riwayat.";
       pushNotice(message, "error");
+    } finally {
+      setIsDeletingRiwayat(false);
     }
   }, [riwayatList, selectedHistoryId, pushNotice]);
 
@@ -510,6 +576,7 @@ export default function App() {
               onHistorySelect={handleHistorySelect}
               onDeleteHistory={handleDeleteRiwayat}
               isLoadingHistory={isLoadingHistory}
+              isDeletingHistory={isDeletingRiwayat}
             />
           </div>
         </div>
@@ -527,6 +594,16 @@ export default function App() {
         </div>
       )}
 
+      {isDeletingRiwayat && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-[9999]">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl px-8 py-6 flex flex-col items-center gap-3 animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-10 h-10 border-4 border-red-200 border-t-red-500 rounded-full animate-spin" />
+            <p className="text-sm font-semibold text-slate-800">Menghapus Riwayat...</p>
+            <p className="text-xs text-slate-500">Menghapus data perankingan dari database</p>
+          </div>
+        </div>
+      )}
+
       {isMasterModalOpen && (
         <MasterDataModal
           villages={masterVillages}
@@ -536,6 +613,7 @@ export default function App() {
           pembobotan={masterPembobotan}
           setPembobotan={setMasterPembobotan}
           onClose={() => setMasterModalOpen(false)}
+          onRefreshRiwayat={refreshRiwayat}
         />
       )}
     </div>

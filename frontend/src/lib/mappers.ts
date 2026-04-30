@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Helper pemetaan data backend ke model frontend.
  * Bila nama field Supabase Anda berbeda, file ini biasanya cukup disesuaikan bersama tableMap backend.

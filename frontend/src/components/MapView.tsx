@@ -57,7 +57,7 @@ export default function MapView({
         {isCalculated &&
           villages.map((village) => {
             const isSelected = selectedVillage?.id === village.id;
-            const color = getStatusColor(village.vScore);
+            const color = getStatusColor(village.vScore ?? 0);
 
             return (
               <CircleMarker
@@ -85,13 +85,13 @@ export default function MapView({
                     <div className="flex items-center justify-between text-xs border-t border-slate-100 pt-1.5">
                       <span className="text-slate-400">V-Score:</span>
                       <span className="font-bold" style={{ color }}>
-                        {village.vScore.toFixed(2)}
+                        {village.vScore?.toFixed(2)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-xs mt-1">
                       <span className="text-slate-400">Status:</span>
                       <span className="font-semibold" style={{ color }}>
-                        {getStatusLabel(village.vScore)}
+                        {getStatusLabel(village.vScore ??  0)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-xs mt-1">
@@ -136,10 +136,10 @@ export default function MapView({
       )}
 
       {!isCalculated && (
-        <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center z-[30]">
-          <div className="text-center p-6 bg-white/80 border border-slate-200 rounded-2xl shadow-xl backdrop-blur-md">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[30]">
+          <div className="flex items-center gap-2.5 px-4 py-2.5 bg-white/90 border border-slate-200 rounded-xl shadow-lg backdrop-blur-md">
             <svg
-              className="w-12 h-12 text-slate-400 mx-auto mb-3"
+              className="w-5 h-5 text-slate-400 flex-shrink-0"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -151,10 +151,10 @@ export default function MapView({
                 d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"
               />
             </svg>
-            <p className="text-sm text-slate-800 font-medium">Peta Kabupaten Jember</p>
-            <p className="text-xs text-slate-500 mt-1">
-              Klik "Hitung Prioritas" untuk memulai simulasi
-            </p>
+            <div>
+              <p className="text-xs text-slate-700 font-semibold leading-tight">Belum ada data perankingan</p>
+              <p className="text-[10px] text-slate-400">Klik "Analisis Prioritas" di sidebar untuk memulai</p>
+            </div>
           </div>
         </div>
       )}

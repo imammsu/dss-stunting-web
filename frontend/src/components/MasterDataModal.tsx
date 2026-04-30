@@ -50,6 +50,7 @@ interface MasterDataModalProps {
   pembobotan: BackendPembobotan[];
   setPembobotan: Dispatch<SetStateAction<BackendPembobotan[]>>;
   onClose: () => void;
+  onRefreshRiwayat?: () => Promise<void>;
 }
 
 export default function MasterDataModal({
@@ -60,12 +61,14 @@ export default function MasterDataModal({
   pembobotan,
   setPembobotan,
   onClose,
+  onRefreshRiwayat,
 }: MasterDataModalProps) {
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean;
     type: "village" | "weight";
     id: number | null;
   }>({ open: false, type: "village", id: null });
+  const [isDeleting, setIsDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState<"desa" | "pembobotan">("desa");
   const [searchTerm, setSearchTerm] = useState("");
   const [editingVillage, setEditingVillage] = useState<Village | null>(null);
@@ -215,6 +218,7 @@ export default function MasterDataModal({
 
   const handleConfirmDelete = async () => {
     if (deleteDialog.id === null) return;
+    setIsDeleting(true);
     try {
       if (deleteDialog.type === "village") {
         await deleteAlternativeDesa(deleteDialog.id);
@@ -224,13 +228,20 @@ export default function MasterDataModal({
         const updated = await fetchPembobotan();
         setPembobotan(updated);
       }
+      // Refresh riwayat karena cascade delete mungkin menghapus riwayat terkait
+      if (onRefreshRiwayat) {
+        await onRefreshRiwayat();
+      }
     } catch (error: any) {
-      // ganti alert dengan toast jika ada, atau biarkan error
       console.error(error.message);
+      alert(error.message || "Gagal menghapus data.");
     } finally {
+      setIsDeleting(false);
       setDeleteDialog({ open: false, type: "village", id: null });
     }
   };
+
+  console.log("kriteria sample:", pembobotan[0]?.kriteria);
 
 
   return (
@@ -402,9 +413,9 @@ export default function MasterDataModal({
                       <TableRow>
                         <TableHead className="text-right text-xs">No</TableHead>
                         <TableHead>Nama bobot</TableHead>
-                        {weights.map((weight) => (
-                          <TableHead key={weight.id} className="text-center text-xs">
-                            {weight.kode}
+                        {criteriaDefinitions.map((c) => (
+                          <TableHead key={c.id} className="text-center text-xs">
+                            {c.label}
                           </TableHead>
                         ))}
                         <TableHead className="text-right text-xs">Aksi</TableHead>
@@ -415,11 +426,13 @@ export default function MasterDataModal({
                         <TableRow key={String(item.id)}>
                           <TableCell className="text-right">{idx + 1}</TableCell>
                           <TableCell className="font-medium">{item.pembobotan_nama}</TableCell>
-                          {weights.map((weight) => {
-                            const matchingKriteria = item.kriteria.find(k => k.id_kriteria === weight.id);
+                          {criteriaDefinitions.map((c, index) => {
+                            const matchingKriteria = item.kriteria.find(
+                              (k) => k.id_kriteria === index + 1
+                            );
                             return (
-                              <TableCell key={weight.id} className="text-right">
-                                {matchingKriteria ? matchingKriteria.bobot.toFixed(3) : '-'}
+                              <TableCell key={c.id} className="text-right">
+                                {matchingKriteria ? matchingKriteria.bobot.toFixed(3) : "-"}
                               </TableCell>
                             );
                           })}
@@ -765,6 +778,21 @@ export default function MasterDataModal({
         />
       )}
 
+      {/* Overlay loading saat proses hapus */}
+      {isDeleting && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-[50]">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl px-8 py-6 flex flex-col items-center gap-3 animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-10 h-10 border-4 border-red-200 border-t-red-500 rounded-full animate-spin" />
+            <p className="text-sm font-semibold text-slate-800">Menghapus Data...</p>
+            <p className="text-xs text-slate-500">
+              {deleteDialog.type === "village"
+                ? "Menghapus desa beserta riwayat terkait"
+                : "Menghapus pembobotan beserta riwayat terkait"}
+            </p>
+          </div>
+        </div>
+      )}
+
       <AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog((prev) => ({ ...prev, open }))}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -776,12 +804,21 @@ export default function MasterDataModal({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
-              className="bg-destructive text-white hover:bg-destructive/90"
+              className="bg-destructive text-white hover:bg-destructive/90 disabled:opacity-60"
+              disabled={isDeleting}
             >
-              Hapus
+              {isDeleting ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Menghapus...
+                </span>
+              ) : "Hapus"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -117,10 +117,34 @@ export const deletePembobotanFromDatabase = async (id) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+
+    // 1. Cari semua riwayat_ranking yang menggunakan pembobotan ini
+    const riwayatIds = await client.query(
+      'SELECT id FROM riwayat_ranking WHERE id_pembobotan_kriteria = $1',
+      [id]
+    );
+
+    // 2. Hapus data terkait setiap riwayat
+    for (const row of riwayatIds.rows) {
+      const idRiwayat = row.id;
+      await client.query(
+        `DELETE FROM ranking_alternatif WHERE id_ranking_hasil IN (
+           SELECT id FROM ranking_hasil WHERE id_riwayat_ranking = $1
+         )`,
+        [idRiwayat]
+      );
+      await client.query('DELETE FROM ranking_hasil WHERE id_riwayat_ranking = $1', [idRiwayat]);
+    }
+
+    // 3. Hapus riwayat_ranking yang menggunakan pembobotan ini
+    await client.query('DELETE FROM riwayat_ranking WHERE id_pembobotan_kriteria = $1', [id]);
+
+    // 4. Hapus data pembobotan itu sendiri
     await client.query('DELETE FROM pairwise_comparison_kriteria WHERE id_pembobotan_kriteria = $1', [id]);
     await client.query('DELETE FROM pembobotan_hasil WHERE id_pembobotan_kriteria = $1', [id]);
     const result = await client.query('DELETE FROM pembobotan_kriteria WHERE id = $1 RETURNING id', [id]);
     if (result.rowCount === 0) throw new Error("Data tidak ditemukan.");
+
     await client.query('COMMIT');
     return result.rows[0];
   } catch (error) {
