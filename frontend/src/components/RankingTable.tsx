@@ -182,7 +182,7 @@ export default function RankingTable({
 
       <div className="flex-1 overflow-y-auto min-h-0">
         <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-slate-50/80 backdrop-blur-md z-10">
+          <thead className="sticky top-0 bg-slate-50/80 backdrop-blur-md z-6">
             <tr>
               <th className="text-left px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-12">
                 #

@@ -28,13 +28,13 @@ export interface CriterionDefinition {
 }
 
 export const criteriaDefinitions: BackendCriterion[] = [
-  { id: "komitmen",    label: "Komitmen",     type: "benefit" , satuan: "1-5"},
-  { id: "remaja",      label: "Remaja",       type: "cost"    , satuan: "jumlah"},
+  { id: "komitmen",    label: "Komitmen",     type: "cost" , satuan: "1-5"},
+  { id: "remaja",      label: "Remaja",       type: "benefit"    , satuan: "jumlah"},
   { id: "stunting",    label: "Stunting",     type: "benefit" , satuan: "persen"},
   { id: "prevalensi",  label: "Prevalensi",   type: "benefit" , satuan: "persen"},
   { id: "kemiskinan",  label: "Kemiskinan",   type: "benefit" , satuan: "persen"},
-  { id: "jarak",       label: "Jarak",        type: "cost"    , satuan: "km"},
-  { id: "tenagaKerja", label: "Tenaga Kerja", type: "benefit" , satuan: "jumlah"},
+  { id: "jarak",       label: "Jarak",        type: "benefit"    , satuan: "km"},
+  { id: "tenagaKerja", label: "Tenaga Kerja", type: "cost" , satuan: "jumlah"},
 ];
 
 

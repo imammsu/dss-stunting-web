@@ -13,7 +13,7 @@ export const getTopsisReadyCriteria = async () => {
     id: row.code ?? row.id,
     label: row.name ?? row.code ?? row.id,
     weight: row.weight,
-    type: row.is_benefit ?? "benefit",
+    type: row.tipe ? "benefit" : "cost",
     raw: row.raw,
   }));
 };

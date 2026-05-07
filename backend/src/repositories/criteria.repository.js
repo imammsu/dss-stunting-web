@@ -10,7 +10,7 @@ export const listCriteriaFromDatabase = async () => {
       k.id,
       k.kode,
       k.nama,
-      k.is_benefit,
+      k.is_benefit as tipe,
       k.satuan,
       ph.bobot AS weight
     FROM kriteria k
@@ -32,7 +32,7 @@ export const listCriteriaFromDatabase = async () => {
     code: row.kode,
     name: row.nama,
     weight: row.weight == null ? null : Number(row.weight),
-    type: row.tipe ?? "benefit",
+    tipe: row.tipe ?? "benefit",
     satuan: row.satuan,
     raw: row,
   }));

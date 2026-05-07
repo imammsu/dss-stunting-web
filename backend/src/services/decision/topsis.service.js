@@ -155,8 +155,8 @@ export const rankWithTopsis = ({ criteria, alternatives }) => {
         }, 0),
       );
 
-      const preferenceValue =
-        negativeDistance / (positiveDistance + negativeDistance || 1);
+      const total = positiveDistance + negativeDistance;
+      const preferenceValue = total === 0 ? 0.5 : negativeDistance / total;
 
       return {
         id: alternative.id,

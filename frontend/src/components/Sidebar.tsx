@@ -55,8 +55,11 @@ export default function Sidebar({
   const [inputType, setInputType] = useState<"upload" | "manual">("manual");
   const [manualVillages, setManualVillages] = useState<Village[]>([]);
   const [selectedWeightId, setSelectedWeightId] = useState<number>(
-    masterPembobotan[0]?.id || 0,
+    0
   );
+
+  console.log(masterPembobotan)
+  console.log(selectedWeightId, "dewa")
   const [selectedVillageId, setSelectedVillageId] = useState<number>(() => {
     const saved = localStorage.getItem("selectedVillageId");
     return saved ? Number(saved) : -1;
@@ -70,10 +73,10 @@ export default function Sidebar({
   const [csvFileName, setCsvFileName] = useState("");
 
   useEffect(() => {
-    if (!masterWeights.some((weight) => weight.id === selectedWeightId)) {
-      setSelectedWeightId(masterWeights[0]?.id || 0);
+    if (!masterPembobotan.some((weight) => weight.id === selectedWeightId)) {
+      setSelectedWeightId(masterPembobotan[0]?.id || 0);
     }
-  }, [masterWeights, selectedWeightId]);
+  }, [masterPembobotan, selectedWeightId]);
 
   useEffect(() => {
     if (selectedVillageId === -1) {
@@ -143,6 +146,7 @@ export default function Sidebar({
       },
     ]);
   };
+  
 
   return (
     <aside
@@ -219,8 +223,10 @@ export default function Sidebar({
                 ))}
               </select> */}
               <Select
-                value={String(selectedWeightId)}
-                onValueChange={(value) => setSelectedWeightId(Number(value))}
+                value={selectedWeightId ? String(selectedWeightId) : undefined}
+                onValueChange={(value) => {
+                  setSelectedWeightId(Number(value))
+                }}
                 disabled={isLoading || !masterPembobotan.length}
                 >
                 <SelectTrigger className="w-full text-xs">
